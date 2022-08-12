@@ -1,55 +1,64 @@
 <!DOCTYPE html>
 <html>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/2.9.4/Chart.js"></script>
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <script type="text/javascript" src="DBdata.js"></script>
+    <script type="text/javascript" src="func.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
 <body>
 
 <h1>My First Heading</h1>
 <p>My first paragraph.</p>
-<canvas id="myChart" style="width:100%;max-width:600px"></canvas>
-
+<canvas id="myChart" width="400" height="400"></canvas>
 <script>
-    var xValues = [100,200,300,400,500,600,700,800,900,1000];
+    //console.log(DB_Products);
+    //console.log(DB_Quantums);
+    var search_country = "越南";
+    var startDate = new Date("2022-07-20");
+    var endDate = new Date("2022-08-31");
+    var x_axis = getXaxis(startDate, endDate);
+    console.log(x_axis);
 
-    new Chart("myChart", {
-    type: "line",
+    var result = DB_Quantums.filter(obj => {
+        var from = Date.parse(obj.date);
+        return obj.country === search_country && from > startDate
+    })
+    console.log("==result==", result);
+
+    var xxValues = [];
+    x_axis.forEach(function(element){
+        var tmp = result.find(item => item.date == element);
+        console.log(element, tmp);
+        if(tmp != null) {
+            xxValues.push(tmp.weights);
+        } else {
+            xxValues.push(0);
+        }
+    });
+
+    const ctx = document.getElementById('myChart').getContext('2d');
+    const myChart = new Chart(ctx, {
+    type: 'line',
     data: {
-        labels: xValues,
+        labels: x_axis,
         datasets: [{
-        data: [860,1140,1060,1060,1070,1110,1330,2210,7830,2478],
-        borderColor: "red",
-        fill: false
-        },{
-        data: [1600,1700,1700,1900,2000,2700,4000,5000,6000,7000],
-        borderColor: "green",
-        fill: false
-        },{
-        data: [300,700,2000,5000,6000,4000,2000,1000,200,100],
-        borderColor: "blue",
-        fill: false
+            label: search_country,
+            data: xxValues,
+            backgroundColor: 'rgb(255, 99, 132)',
+            borderColor: 'rgb(255, 99, 132)',
+            borderWidth: 1
         }]
     },
     options: {
-        legend: {display: false}
+        scales: {
+            y: {
+                beginAtZero: true
+            }
+        }
     }
-    });
-    getDB();
-    
-
-    function getDB() {
-        const xhr = new XMLHttpRequest();
-        // For example: https://github.com/lerocha/chinook-database/raw/master/ChinookDatabase/DataSources/Chinook_Sqlite.sqlite
-        xhr.open('GET', 'https://github.com/dwm331/bipubReport/blob/main/bipubServer/SQLite/20220811.db', true);
-        xhr.responseType = 'arraybuffer';
-
-        xhr.onload = e => {
-        const uInt8Array = new Uint8Array(xhr.response);
-        const db = new SQL.Database(uInt8Array);
-        const contents = db.exec("SELECT * FROM product");
-            console.log(contents);
-        // contents is now [{columns:['col1','col2',...], values:[[first row], [second row], ...]}]
-        };
-        xhr.send();
-    }
+});
 
 </script>
 </body>
