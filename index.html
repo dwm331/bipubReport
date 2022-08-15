@@ -5,61 +5,151 @@
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <script type="text/javascript" src="DBdata.js"></script>
     <script type="text/javascript" src="func.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/moment.js/2.22.2/moment.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.2.0/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-gH2yIJqKdNHPEq0n4Mqa/HGKIhSkIHeL5AyhkYV8i59U5AR6csBvApHHNl/vI1Bx" crossorigin="anonymous">
+    <link rel="stylesheet" href="https://code.jquery.com/ui/1.13.2/themes/base/jquery-ui.css">
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <script src="https://code.jquery.com/ui/1.13.2/jquery-ui.min.js"></script>
 </head>
 <body>
 
-<h1>My First Heading</h1>
-<p>My first paragraph.</p>
-<canvas id="myChart" width="400" height="400"></canvas>
+<h1>特別進口統計圖</h1>
+<div class="container text-center">
+    <div class="row">
+      <div class="col">
+        <div class="row">
+            <select class="form-select" aria-label="Default select example" id="countrySelect">
+                <option selected>選擇國家</option>
+            </select>
+        </div>
+        <div class="row">
+            <select class="form-select" aria-label="Default select example" id="productSelect">
+                <option selected>選擇果菜</option>
+            </select>
+        </div>
+      </div>
+      <div class="col">
+        <label for="yearList">年分</label>
+        <ul class="list-group" id="yearList">
+        </ul>
+      </div>
+    </div>
+    <hr>
+    <div class="row">
+        <div class="col-4">
+            日期區間
+        </div>
+        <div class="col-4">
+            <p>開始時間: <input type="text" id="datepickerStart"></p>
+        </div>
+        <div class="col-4">
+            <p>開始時間: <input type="text" id="datepickerEnd"></p>
+        </div>
+    </div>
+    <hr>
+    <div class="row">
+        <div class="chart-container" style="position: relative; height:40vh; width:100%">
+            <canvas id="myChart"></canvas>
+        </div>
+    </div>
+</div>
 <script>
-    //console.log(DB_Products);
-    //console.log(DB_Quantums);
-    var search_country = "越南";
-    var startDate = new Date("2022-07-20");
-    var endDate = new Date("2022-08-31");
-    var x_axis = getXaxis(startDate, endDate);
-    console.log(x_axis);
+    $( function() {
+        var countryTag = ["越南", "印度尼西亞", "泰國", "大韓民國(南韓)", "中華人民共和國", "日本", "美國", "澳大利亞", "加拿大", "墨西哥"];
+        layoutSelectItems(countryTag, "countrySelect");
 
-    var result = DB_Quantums.filter(obj => {
-        var from = Date.parse(obj.date);
-        return obj.country === search_country && from > startDate
-    })
-    console.log("==result==", result);
+        var labelDProducts = {};
+        DB_Products.forEach(function(element){
+            labelDProducts[element.code] = element.name
+        });
+        layoutSelectItems(labelDProducts, "productSelect");
 
-    var xxValues = [];
-    x_axis.forEach(function(element){
-        var tmp = result.find(item => item.date == element);
-        console.log(element, tmp);
-        if(tmp != null) {
-            xxValues.push(tmp.weights);
-        } else {
-            xxValues.push(0);
-        }
-    });
+        var yearTag = [2019, 2020, 2021, 2022];
+        layoutCheckItems(yearTag);
 
-    const ctx = document.getElementById('myChart').getContext('2d');
-    const myChart = new Chart(ctx, {
-    type: 'line',
-    data: {
-        labels: x_axis,
-        datasets: [{
-            label: search_country,
-            data: xxValues,
-            backgroundColor: 'rgb(255, 99, 132)',
-            borderColor: 'rgb(255, 99, 132)',
-            borderWidth: 1
-        }]
-    },
-    options: {
-        scales: {
-            y: {
-                beginAtZero: true
+        //console.log(DB_Products);
+        //console.log(DB_Quantums);
+        var search_country = "";
+        var search_product = "";
+        var yearSelectList = yearTag;
+        var startDate = new Date("2022-08-01");
+        var endDate = new Date("2022-08-31");
+        var chartData = {
+            x_axis: [],
+            datasets: []
+        };
+
+        $('#datepickerStart, #datepickerEnd').datepicker({
+            showOn: "both",
+            beforeShow: customRange,
+            dateFormat: "yy-mm-dd",
+            yearRange: '2019:2025',
+            changeMonth: true,
+            changeYear: true,
+            onSelect: function(dateText) {
+                console.log("Selected date: " + dateText + ", Current Selected Value= " + this.value + " this.id" + this.id);
+                if(this.id == "datepickerStart") {
+                    startDate = new Date(this.value);
+                }
+                if(this.id == "datepickerEnd") {
+                    endDate = new Date(this.value);
+                }
+                $(this).change();
             }
-        }
-    }
-});
+        })
+        .on("change", function() {
+            console.log("input's current value: " + this.value);
+        });;
+
+        $("#datepickerStart").datepicker( "setDate" , "2022-08-01");
+        $("#datepickerEnd").datepicker( "setDate" , "2022-08-31" );
+
+        $("#countrySelect").change(function() {
+            search_country = $(this).val();
+            // get report data
+            chartdatas = getChartData(startDate, endDate, search_country, search_product, yearSelectList);
+
+            refleshChart(myChart, chartdatas);
+        });
+
+        $("#productSelect").change(function() {
+            search_product = $(this).val();
+            // get report data
+            chartdatas = getChartData(startDate, endDate, search_country, search_product, yearSelectList);
+
+            refleshChart(myChart, chartdatas);
+        });
+
+        $(":checkbox").on("click", function(){
+            yearSelectList = [];
+            $("input:checkbox:checked").each(function(){
+                yearSelectList.push($(this).attr("id").replace("checkbox", ""));
+            });
+            console.log(yearSelectList)
+        });
+
+        // get report data
+        chartdatas = getChartData(startDate, endDate, search_country, search_product, yearSelectList);
+
+        const ctx = document.getElementById('myChart').getContext('2d');
+        const myChart = new Chart(ctx, {
+            type: 'line',
+            data: {
+                labels: chartdatas.x_axis,
+                datasets: chartdatas.datasets
+            },
+            options: {
+                scales: {
+                    y: {
+                        beginAtZero: true
+                    }
+                }
+            }
+        });
+    } );
 
 </script>
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.2.0/dist/js/bootstrap.bundle.min.js" integrity="sha384-A3rJD856KowSb7dwlZdYEkO39Gagi7vIsF0jrRAoQmDKKtQBHUuLZ9AsSv4jD4Xa" crossorigin="anonymous"></script>
 </body>
 </html>
