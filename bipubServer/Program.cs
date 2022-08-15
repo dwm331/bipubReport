@@ -103,8 +103,8 @@ namespace BipubServer
                         //Console.WriteLine("===>>" + reqString);
 
                         List<string> codes = IMPORTANTCODE.Split(",").ToList();
-                        int itemIdx = 0;
-                        string itemcode = codes[itemIdx];
+                        int itemIdx = -1;
+                        string itemcode =  "";
 
                         List<Product> products = new List<Product>();
                         List<string> countrys = new List<string>();
