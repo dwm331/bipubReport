@@ -1,8 +1,12 @@
 function getXaxis(startDate, enDate) {
-    if(startDate.getMonth() != enDate.getMonth())
+    console.log(startDate.getDate(),  enDate.getDate())
+    if(startDate.getMonth() != enDate.getMonth()) {
         return paddingDate(startDate).concat(paddingDate(enDate, "reverse"));
-    else
+    } else if(startDate.getMonth() == enDate.getMonth() && startDate.getDate() < enDate.getDate()) {
+        return paddingTwoDate(startDate, enDate);
+    } else {
         return paddingDate(enDate, "reverse");
+    }
 }
 
 function paddingDate(dt, direction) {
@@ -18,6 +22,19 @@ function paddingDate(dt, direction) {
         startInx = 1;
 
     for(var i = startInx; i <= daysInMonth; i++)
+        Xaxis.push(year+"-"+numberPadZero(month+1)+"-"+numberPadZero(i));
+
+    return Xaxis;
+}
+
+function paddingTwoDate(dt1, dt2) {
+    var Xaxis = [];
+    var day = dt1.getDate();
+    var month = dt1.getMonth(); // 0~11
+    var year = dt1.getFullYear();
+    var day2 = dt2.getDate();
+
+    for(var i = day; i <= day2; i++)
         Xaxis.push(year+"-"+numberPadZero(month+1)+"-"+numberPadZero(i));
 
     return Xaxis;
@@ -70,10 +87,69 @@ function getProductName(labelDProducts, str) {
     return (labelDProducts[str] !== null)? labelDProducts[str] : ""
 }
 
-function refleshChart(myChart, chartdatas) {
+function changeChartType(tctx, tmyChart, chartType, _tconfig) {
+    var temp = jQuery.extend(true, {}, _tconfig);
+    temp.type = chartType;
+    if (tmyChart) {    tmyChart.destroy();  }
+    return new Chart(tctx, temp);
+}
+
+
+function refleshChart(myChart, chartType, chartdatas) {
     myChart.data.labels = chartdatas.x_axis;
     myChart.data.datasets = chartdatas.datasets;
     myChart.update();
+}
+
+const CHART_COLORS = {
+    red: 'rgb(255, 99, 132)',
+    orange: 'rgb(255, 159, 64)',
+    yellow: 'rgb(255, 205, 86)',
+    green: 'rgb(75, 192, 192)',
+    blue: 'rgb(54, 162, 235)',
+    purple: 'rgb(153, 102, 255)',
+    grey: 'rgb(201, 203, 207)'
+};
+
+function reBuildChartData(chartData, search_country, yearSelectList) {
+    var datasets = [];
+    var colorIdx = 0;
+    var colorList = ['orange', 'green', 'blue', 'purple', 'grey', 'yellow'];
+    yearSelectList.forEach(function(y){
+        var label = "";
+        var data = [];
+        var randomColor = CHART_COLORS[colorList[colorIdx]];
+        var type = 'line';
+        if(parseInt(y) == 2022) {
+            label = "(2022)"+search_country;
+            data = chartData.datasets.filter(sets => sets.label.includes('2022'))[0].data;
+            randomColor = CHART_COLORS['red'];
+            type = "bar";
+        } else if(parseInt(y) == 2021) {
+            label = "(2021)"+search_country;
+            data = chartData.datasets.filter(sets => sets.label.includes('2021'))[0].data;
+        } else if(parseInt(y) == 2020) {
+            label = "(2020)"+search_country;
+            data = chartData.datasets.filter(sets => sets.label.includes('2020'))[0].data;
+        } else if(parseInt(y) == 2019) {
+            label = "(2019)"+search_country;
+            data = chartData.datasets.filter(sets => sets.label.includes('2019'))[0].data;
+        }
+        datasets.push({
+            type: type,
+            label: label,
+            data: data,
+            backgroundColor: randomColor,
+            borderColor: randomColor,
+            borderWidth: 1
+        });
+        colorIdx++;
+    });
+
+    return  {
+        x_axis: chartData.x_axis,
+        datasets: datasets
+    };
 }
 
 function getChartData(startDate, endDate, search_country, search_product, yearSelectList) {
@@ -87,7 +163,7 @@ function getChartData(startDate, endDate, search_country, search_product, yearSe
     }
 
     x_axis = getXaxis(startDate, endDate);
-    //console.log(x_axis);
+    console.log(x_axis);
 
     var reports = {
         result19: [],
@@ -146,15 +222,17 @@ function getChartData(startDate, endDate, search_country, search_product, yearSe
 
     var datasets = [];
     var colorIdx = 0;
-    var colorList = ['pink', 'orange', 'green', 'blue', 'indigo', 'purple'];
+    var colorList = ['orange', 'green', 'blue', 'purple', 'grey', 'yellow'];
     yearSelectList.forEach(function(y){
         var label = "";
         var data = [];
-        var randomColor = colorList[colorIdx];
+        var randomColor = CHART_COLORS[colorList[colorIdx]];
+        var type = 'line';
         if(parseInt(y) == 2022) {
             label = "(2022)"+search_country;
             data = xxValues22;
-            randomColor = 'red';
+            randomColor = CHART_COLORS['red'];
+            type = 'bar';
         } else if(parseInt(y) == 2021) {
             label = "(2021)"+search_country;
             data = xxValues21;
@@ -166,6 +244,7 @@ function getChartData(startDate, endDate, search_country, search_product, yearSe
             data = xxValues19;
         }
         datasets.push({
+            type: type,
             label: label,
             data: data,
             backgroundColor: randomColor,

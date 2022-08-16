@@ -28,6 +28,13 @@
                 <option selected>選擇果菜</option>
             </select>
         </div>
+        <!--div class="row">
+            <label for="ChartTypeSelect">圖表類別</label>
+            <select class="form-select" aria-label="Default select example" id="ChartTypeSelect">
+                <option value="line" selected>折線圖</option>
+                <option value="bar">直方圖</option>
+            </select>
+        </div-->
       </div>
       <div class="col">
         <label for="yearList">年分</label>
@@ -37,19 +44,24 @@
     </div>
     <hr>
     <div class="row">
-        <div class="col-4">
+        <div class="col-1">
             日期區間
         </div>
         <div class="col-4">
-            <p>開始時間: <input type="text" id="datepickerStart"></p>
+            <label for="datepickerStart">開始時間:</label>
+            <input type="text" id="datepickerStart">
         </div>
         <div class="col-4">
-            <p>開始時間: <input type="text" id="datepickerEnd"></p>
+            <label for="datepickerEnd">開始時間:</label>
+            <input type="text" id="datepickerEnd">
+        </div>
+        <div class="col-3">
+            <button type="button" class="btn btn-primary" id="RefreshChartsBtn">更新</button>
         </div>
     </div>
     <hr>
     <div class="row">
-        <div class="chart-container" style="position: relative; height:40vh; width:100%">
+        <div class="chart-container" style="position: relative; height:90vh; width:90vw" id="myChartContainer">
             <canvas id="myChart"></canvas>
         </div>
     </div>
@@ -73,13 +85,13 @@
         var search_country = "";
         var search_product = "";
         var yearSelectList = yearTag;
-        var startDate = new Date("2022-08-01");
-        var endDate = new Date("2022-08-31");
+        var startDate = new Date("2022-08-07");
+        var endDate = new Date("2022-08-27");
+        var chartType = "line";
         var chartData = {
             x_axis: [],
             datasets: []
         };
-
         $('#datepickerStart, #datepickerEnd').datepicker({
             showOn: "both",
             beforeShow: customRange,
@@ -102,15 +114,21 @@
             console.log("input's current value: " + this.value);
         });;
 
-        $("#datepickerStart").datepicker( "setDate" , "2022-08-01");
-        $("#datepickerEnd").datepicker( "setDate" , "2022-08-31" );
+        $("#datepickerStart").datepicker( "setDate" , "2022-08-07");
+        $("#datepickerEnd").datepicker( "setDate" , "2022-08-27" );
+
+        $('#RefreshChartsBtn').click(function() {
+            chartdatas = getChartData(startDate, endDate, search_country, search_product, yearSelectList);
+
+            refleshChart(myChart, chartType, chartdatas);
+        });
 
         $("#countrySelect").change(function() {
             search_country = $(this).val();
             // get report data
             chartdatas = getChartData(startDate, endDate, search_country, search_product, yearSelectList);
 
-            refleshChart(myChart, chartdatas);
+            refleshChart(myChart, chartType, chartdatas);
         });
 
         $("#productSelect").change(function() {
@@ -118,7 +136,13 @@
             // get report data
             chartdatas = getChartData(startDate, endDate, search_country, search_product, yearSelectList);
 
-            refleshChart(myChart, chartdatas);
+            refleshChart(myChart, chartType, chartdatas);
+        });
+
+        $("#ChartTypeSelect").change(function() {
+            chartType = $(this).val();
+            // set report data
+            myChart = changeChartType(ctx, myChart, chartType, _config)
         });
 
         $(":checkbox").on("click", function(){
@@ -127,25 +151,54 @@
                 yearSelectList.push($(this).attr("id").replace("checkbox", ""));
             });
             console.log(yearSelectList)
+
+            var tmpChartdatas = reBuildChartData(chartdatas, search_country, yearSelectList);
+            refleshChart(myChart, chartType, tmpChartdatas);
         });
 
         // get report data
         chartdatas = getChartData(startDate, endDate, search_country, search_product, yearSelectList);
 
         const ctx = document.getElementById('myChart').getContext('2d');
-        const myChart = new Chart(ctx, {
-            type: 'line',
+        var _config = {
+            type: chartType,
             data: {
                 labels: chartdatas.x_axis,
                 datasets: chartdatas.datasets
             },
             options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    title: {
+                        text: '進口數量指定查詢期間/公噸',
+                        display: true
+                    }
+                },
                 scales: {
+                    x: {
+
+                        title: {
+                            display: true,
+                            text: '日期'
+                        }
+                    },
                     y: {
+                        title: {
+                            display: true,
+                            text: '公噸'
+                        },
                         beginAtZero: true
                     }
                 }
             }
+        }
+        var myChart = new Chart(ctx, _config);
+
+        $(window).on('resize', function(){
+            var win = $(this); //this = window
+            if (win.height() >= 820) { /* ... */ }
+            if (win.width() >= 1280) { /* ... */ }
         });
     } );
 
