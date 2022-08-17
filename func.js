@@ -2,10 +2,8 @@ function getXaxis(startDate, enDate) {
     console.log(startDate.getDate(),  enDate.getDate())
     if(startDate.getMonth() != enDate.getMonth()) {
         return paddingDate(startDate).concat(paddingDate(enDate, "reverse"));
-    } else if(startDate.getMonth() == enDate.getMonth() && startDate.getDate() < enDate.getDate()) {
-        return paddingTwoDate(startDate, enDate);
     } else {
-        return paddingDate(enDate, "reverse");
+        return paddingTwoDate(startDate, enDate);
     }
 }
 
@@ -18,10 +16,13 @@ function paddingDate(dt, direction) {
 
     //positive
     var startInx = day;
-    if(direction == "reverse")
+    var endInx = daysInMonth;
+    if(direction == "reverse") {
         startInx = 1;
+        endInx = day;
+    }
 
-    for(var i = startInx; i <= daysInMonth; i++)
+    for(var i = startInx; i <= endInx; i++)
         Xaxis.push(year+"-"+numberPadZero(month+1)+"-"+numberPadZero(i));
 
     return Xaxis;
