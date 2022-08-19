@@ -3,6 +3,7 @@
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>特別進口統計圖</title>
     <script type="text/javascript" src="DBdata.js"></script>
     <script type="text/javascript" src="func.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/3.7.1/chart.min.js"></script>
@@ -15,14 +16,19 @@
 </head>
 <body>
 
-<h1>特別進口統計圖</h1>
+
 <div class="container text-center">
+    <div class="col-md-6 px-0">
+        <h1 class="display-4 font-italic">特別進口統計圖</h1>
+        <p class="lead my-3" id="subTitle"></p>
+    </div>
     <div class="row">
       <div class="col">
         <div class="alert alert-primary" role="alert">
             提示!<br>
             1.選擇國家，選擇蔬菜，改變年份，會自動更新圖表<br>
             2.改變日期，要按下更新按鈕才會自動更新圖表<br>
+            3.週數計算 <a href="https://zh.m.wikipedia.org/zh-tw/ISO%E9%80%B1%E6%97%A5%E6%9B%86" class="font-weight-bold">ISO 8601</a><br>
           </div>
         <div class="row">
             <select class="form-select" aria-label="Default select example" id="countrySelect">
@@ -32,6 +38,14 @@
         <div class="row">
             <select class="form-select" aria-label="Default select example" id="productSelect">
                 <option selected>選擇果菜</option>
+            </select>
+        </div>
+        <hr>
+        <div class="row">
+            <label for="DateFormatSelect">時間單位</label>
+            <select class="form-select" aria-label="Default select example" id="DateFormatSelect">
+                <option value="week" selected>週數</option>
+                <option value="day">天</option>
             </select>
         </div>
         <!--div class="row">
@@ -58,11 +72,15 @@
             <input type="text" id="datepickerStart">
         </div>
         <div class="col-4">
-            <label for="datepickerEnd">開始時間:</label>
+            <label for="datepickerEnd">結束時間:</label>
             <input type="text" id="datepickerEnd">
         </div>
         <div class="col-3">
             <button type="button" class="btn btn-primary" id="RefreshChartsBtn">更新</button>
+        </div>
+    </div>
+    <div class="row">
+        <div class="alert alert-success" role="alert" id="alertWeek">
         </div>
     </div>
     <hr>
@@ -74,6 +92,7 @@
 </div>
 <script>
     $( function() {
+        showWeek();
         var countryTag = ["越南", "印度尼西亞", "泰國", "大韓民國(南韓)", "中華人民共和國", "日本", "美國", "澳大利亞", "加拿大", "墨西哥"];
         layoutSelectItems(countryTag, "countrySelect");
 
@@ -85,46 +104,62 @@
 
         var yearTag = [2019, 2020, 2021, 2022];
         layoutCheckItems(yearTag);
-
+        console.log("2022-01-01", "isoWeek:"+moment("2022-01-01").isoWeek(), "'W:"+moment("2022-01-01").format('W'));
+        console.log("2022-01-01", "isoWeek:"+moment("2022-01-01").isoWeek(), "'W:"+moment("2022-01-01").format('W'));
         //console.log(DB_Products);
         //console.log(DB_Quantums);
+        //console.log(DB_QuantumWeek);
         var search_country = "";
         var search_product = "";
+        var search_dateformat = "week";
         var yearSelectList = yearTag;
-        var startDate = new Date("2022-08-07");
-        var endDate = new Date("2022-08-27");
+        var startDate = moment().subtract(+7, 'days').weekday(1).format('YYYY-MM-DD');
+        var endDate = moment().subtract(-7, 'days').weekday(7).format('YYYY-MM-DD');
+        var startW = moment(startDate).isoWeek();
+        var endW = moment(endDate).isoWeek();
         var chartType = "line";
         var chartData = {
             x_axis: [],
             datasets: []
         };
+        setWeek(startW, endW);
+        console.log("===================",startDate,endDate,startW,endW,moment(startDate).format('W'),moment(endDate).format('W'));
         $('#datepickerStart, #datepickerEnd').datepicker({
-            showOn: "both",
+            //showOn: "both",
+            weekHeader: "週",
             beforeShow: customRange,
             dateFormat: "yy-mm-dd",
-            yearRange: '2019:2025',
+            yearRange: yearTag[0]+":"+yearTag[yearTag.length-1], // '2019:2025'
             changeMonth: true,
             changeYear: true,
+            showWeek:true,
+            //numberOfMonths: 3,
+            showButtonPanel: true,
+            firstDay: 1, // Sunday is 0, Monday is 1
             onSelect: function(dateText) {
                 console.log("Selected date: " + dateText + ", Current Selected Value= " + this.value + " this.id" + this.id);
                 if(this.id == "datepickerStart") {
                     startDate = new Date(this.value);
+                    startW = moment(startDate).isoWeek();
                 }
                 if(this.id == "datepickerEnd") {
                     endDate = new Date(this.value);
+                    endW = moment(endDate).isoWeek();
                 }
+
                 $(this).change();
+                setWeek(startW, endW);
             }
         })
         .on("change", function() {
             console.log("input's current value: " + this.value);
         });;
 
-        $("#datepickerStart").datepicker( "setDate" , "2022-08-07");
-        $("#datepickerEnd").datepicker( "setDate" , "2022-08-27" );
+        $("#datepickerStart").datepicker( "setDate" , startDate);
+        $("#datepickerEnd").datepicker( "setDate" , endDate );
 
         $('#RefreshChartsBtn').click(function() {
-            chartdatas = getChartData(startDate, endDate, search_country, search_product, yearSelectList);
+            chartdatas = getChartData(search_dateformat, startDate, endDate, search_country, search_product, yearSelectList);
 
             refleshChart(myChart, chartType, chartdatas);
         });
@@ -132,7 +167,7 @@
         $("#countrySelect").change(function() {
             search_country = $(this).val();
             // get report data
-            chartdatas = getChartData(startDate, endDate, search_country, search_product, yearSelectList);
+            chartdatas = getChartData(search_dateformat, startDate, endDate, search_country, search_product, yearSelectList);
 
             refleshChart(myChart, chartType, chartdatas);
         });
@@ -140,7 +175,15 @@
         $("#productSelect").change(function() {
             search_product = $(this).val();
             // get report data
-            chartdatas = getChartData(startDate, endDate, search_country, search_product, yearSelectList);
+            chartdatas = getChartData(search_dateformat, startDate, endDate, search_country, search_product, yearSelectList);
+
+            refleshChart(myChart, chartType, chartdatas);
+        });
+
+        $("#DateFormatSelect").change(function() {
+            search_dateformat = $(this).val();
+            // get report data
+            chartdatas = getChartData(search_dateformat, startDate, endDate, search_country, search_product, yearSelectList);
 
             refleshChart(myChart, chartType, chartdatas);
         });
@@ -163,7 +206,7 @@
         });
 
         // get report data
-        chartdatas = getChartData(startDate, endDate, search_country, search_product, yearSelectList);
+        chartdatas = getChartData(search_dateformat, startDate, endDate, search_country, search_product, yearSelectList);
 
         const ctx = document.getElementById('myChart').getContext('2d');
         var _config = {

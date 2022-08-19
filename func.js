@@ -1,3 +1,18 @@
+function showWeek() {
+    var str = "";
+    const start = moment().weekday(1).format('MM-DD'); //本週一
+    const end = moment().weekday(7).format('MM-DD'); //本週日
+    str += moment().format('YYYY')+"W"+moment().isoWeek();
+    str += " ("+start + "~" + end+")";
+    str += ", 今天日期: " + moment().format('MM-DD');
+    $('#subTitle').text(str);
+}
+function setWeek(startW, endW) {
+    var str = "";
+    str += "當前查詢週次: 第" + startW+ "週" + "~" + "第" + endW+ "週";
+    $('#alertWeek').text(str);
+}
+
 function getXaxis(startDate, enDate) {
     console.log(startDate.getDate(),  enDate.getDate())
     if(startDate.getMonth() != enDate.getMonth()) {
@@ -153,7 +168,7 @@ function reBuildChartData(chartData, search_country, yearSelectList) {
     };
 }
 
-function getChartData(startDate, endDate, search_country, search_product, yearSelectList) {
+function getChartData(dateType, startDate, endDate, search_country, search_product, yearSelectList) {
     var chartData = {
         x_axis: [],
         datasets: []
@@ -173,53 +188,102 @@ function getChartData(startDate, endDate, search_country, search_product, yearSe
         result22: [],
     }
 
-    DB_Quantums.forEach(function(element){
-        var dt = element.date.split("-");
-        var tYear = dt[0];
-        if(element.country === search_country && element.itemcode == search_product) {
-            if(tYear == 2019) {
-                reports.result19.push(element);
-            } else if(tYear == 2020) {
-                reports.result20.push(element);
-            } else if(tYear == 2021) {
-                reports.result21.push(element);
-            } else if(tYear == 2022) {
-                reports.result22.push(element);
+    if(dateType == "week") {
+        DB_QuantumWeek.forEach(function(element){
+            var dt = element.yyyyww.split("-");
+            var tYear = dt[0];
+            if(element.country === search_country && element.itemcode == search_product) {
+                if(tYear == 2019) {
+                    reports.result19.push(element);
+                } else if(tYear == 2020) {
+                    reports.result20.push(element);
+                } else if(tYear == 2021) {
+                    reports.result21.push(element);
+                } else if(tYear == 2022) {
+                    reports.result22.push(element);
+                }
             }
-        }
-    });
+        });
+    } else if(dateType == "day") {
+        DB_Quantums.forEach(function(element){
+            var dt = element.date.split("-");
+            var tYear = dt[0];
+            if(element.country === search_country && element.itemcode == search_product) {
+                if(tYear == 2019) {
+                    reports.result19.push(element);
+                } else if(tYear == 2020) {
+                    reports.result20.push(element);
+                } else if(tYear == 2021) {
+                    reports.result21.push(element);
+                } else if(tYear == 2022) {
+                    reports.result22.push(element);
+                }
+            }
+        });
+    }
+    
     //console.log(reports);
 
     xxValues22 = [];
     xxValues21 = [];
     xxValues20 = [];
     xxValues19 = [];
-    x_axis.forEach(function(element){
-        var tmp = reports.result22.find(item => item.date == element);
-        if(tmp != null) {
-            xxValues22.push(tmp.weights);
-        } else {
-            xxValues22.push(0);
-        }
-        var tmp2 = reports.result21.find(item => moment(item.date).format('MM-DD') == moment(element).format('MM-DD'));
-        if(tmp2 != null) {
-            xxValues21.push(tmp2.weights);
-        } else {
-            xxValues21.push(0);
-        }
-        var tmp3 = reports.result20.find(item => moment(item.date).format('MM-DD') == moment(element).format('MM-DD'));
-        if(tmp3 != null) {
-            xxValues20.push(tmp3.weights);
-        } else {
-            xxValues20.push(0);
-        }
-        var tmp4 = reports.result19.find(item => moment(item.date).format('MM-DD') == moment(element).format('MM-DD'));
-        if(tmp4 != null) {
-            xxValues19.push(tmp4.weights);
-        } else {
-            xxValues19.push(0);
-        }
-    });
+    
+    if(dateType == "week") {
+        x_axis.forEach(function(element){
+            var tmp = reports.result22.find(item => moment(element).isoWeek() == moment(element).isoWeek());
+            if(tmp != null) {
+                xxValues22.push(tmp.total);
+            } else {
+                xxValues22.push(0);
+            }
+            var tmp2 = reports.result21.find(item => moment(item.date).format('W') == moment(element).format('W'));
+            if(tmp2 != null) {
+                xxValues21.push(tmp2.total);
+            } else {
+                xxValues21.push(0);
+            }
+            var tmp3 = reports.result20.find(item => moment(item.date).format('W') == moment(element).format('W'));
+            if(tmp3 != null) {
+                xxValues20.push(tmp3.total);
+            } else {
+                xxValues20.push(0);
+            }
+            var tmp4 = reports.result19.find(item => moment(item.date).format('W') == moment(element).format('W'));
+            if(tmp4 != null) {
+                xxValues19.push(tmp4.total);
+            } else {
+                xxValues19.push(0);
+            }
+        });
+    } else if(dateType == "day") {
+        x_axis.forEach(function(element){
+            var tmp = reports.result22.find(item => item.date == element);
+            if(tmp != null) {
+                xxValues22.push(tmp.weights);
+            } else {
+                xxValues22.push(0);
+            }
+            var tmp2 = reports.result21.find(item => moment(item.date).format('MM-DD') == moment(element).format('MM-DD'));
+            if(tmp2 != null) {
+                xxValues21.push(tmp2.weights);
+            } else {
+                xxValues21.push(0);
+            }
+            var tmp3 = reports.result20.find(item => moment(item.date).format('MM-DD') == moment(element).format('MM-DD'));
+            if(tmp3 != null) {
+                xxValues20.push(tmp3.weights);
+            } else {
+                xxValues20.push(0);
+            }
+            var tmp4 = reports.result19.find(item => moment(item.date).format('MM-DD') == moment(element).format('MM-DD'));
+            if(tmp4 != null) {
+                xxValues19.push(tmp4.weights);
+            } else {
+                xxValues19.push(0);
+            }
+        });
+    }
 
     var datasets = [];
     var colorIdx = 0;
@@ -257,7 +321,12 @@ function getChartData(startDate, endDate, search_country, search_product, yearSe
 
     chartData.x_axis = x_axis;
     chartData.datasets = datasets;
-    //console.log(chartData)
+    console.log(chartData)
     return chartData;
 }
 
+function GerDateWeek(currentDate) {
+    var startDate = new Date(currentDate.getFullYear(), 0, 1);
+    return Math.floor((currentDate - startDate) /
+        (24 * 60 * 60 * 1000));
+}
