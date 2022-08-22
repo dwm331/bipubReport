@@ -105,8 +105,7 @@
 
         var yearTag = [2019, 2020, 2021, 2022];
         layoutCheckItems(yearTag);
-        console.log("2022-01-01", "isoWeek:"+moment("2022-01-01").isoWeek(), "'W:"+moment("2022-01-01").format('W'));
-        console.log("2022-01-01", "isoWeek:"+moment("2022-01-01").isoWeek(), "'W:"+moment("2022-01-01").format('W'));
+    
         //console.log(DB_Products);
         //console.log(DB_Quantums);
         //console.log(DB_QuantumWeek);
@@ -196,7 +195,7 @@
             $("input:checkbox:checked").each(function(){
                 yearSelectList.push($(this).attr("id").replace("checkbox", ""));
             });
-            console.log(yearSelectList)
+            //console.log(yearSelectList)
 
             var tmpChartdatas = reBuildChartData(chartdatas, search_country, yearSelectList);
             refleshChart(myChart, chartType, tmpChartdatas);

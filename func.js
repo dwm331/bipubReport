@@ -17,7 +17,7 @@ function setWeek(startW, endW) {
 function getXaxis(dateType, startDateStr, enDateStr) {
     var startDate = moment(startDateStr).toDate();
     var enDate = moment(enDateStr).toDate();
-    console.log("[getXaxis]", startDate.getDate(),  enDate.getDate())
+    //console.log("[getXaxis]", startDate.getDate(),  enDate.getDate())
     if(dateType == "week") {
         var startW= moment(startDate).format('yyyy-W');
         var endW = moment(enDate).format('yyyy-W'); //本週日
@@ -232,7 +232,7 @@ function getChartData(dateType, startDate, endDate, search_country, search_produ
     }
 
     x_axis = getXaxis(dateType, startDate, endDate);
-    console.log(x_axis);
+    //console.log(x_axis);
 
     var reports = {
         result19: [],
@@ -275,7 +275,7 @@ function getChartData(dateType, startDate, endDate, search_country, search_produ
         });
     }
     
-    console.log(reports);
+    //console.log(reports);
 
     xxValues22 = [];
     xxValues21 = [];
@@ -375,7 +375,7 @@ function getChartData(dateType, startDate, endDate, search_country, search_produ
 
     chartData.x_axis = x_axis;
     chartData.datasets = datasets;
-    console.log(chartData)
+    //console.log(chartData)
     return chartData;
 }
 
