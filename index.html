@@ -26,7 +26,7 @@
       <div class="col-12 col-md-6">
         <div class="alert alert-primary text-lg-start  text-start fs-6" role="alert">
             提示!<br>
-            1.選擇國家，選擇蔬菜，改變年份，會自動更新圖表<br>
+            1.選擇國家，選擇蔬菜，改變年份，改變時間單位，會自動更新圖表<br>
             2.改變日期，要按下更新按鈕才會自動更新圖表<br>
             3.週數計算 <a href="https://zh.m.wikipedia.org/zh-tw/ISO%E9%80%B1%E6%97%A5%E6%9B%86" class="font-weight-bold">ISO 8601</a><br>
           </div>
@@ -64,7 +64,7 @@
     </div>
     <hr>
     <div class="row">
-        <div class="col-12 col-lg-1 bg-secondary text-white">
+        <div class="col-12 col-lg-2 bg-secondary text-white">
             日期區間
         </div>
         <div class="col-12 col-lg-4">
@@ -75,7 +75,7 @@
             <label for="datepickerEnd">結束時間:</label>
             <input type="text" id="datepickerEnd">
         </div>
-        <div class="col-12 col-lg-3">
+        <div class="col-12 col-lg-2">
             <button type="button" class="btn btn-primary w-100" id="RefreshChartsBtn">更新</button>
         </div>
     </div>
@@ -116,15 +116,12 @@
         var yearSelectList = yearTag;
         var startDate = moment().subtract(+7, 'days').weekday(1).format('YYYY-MM-DD');
         var endDate = moment().subtract(-7, 'days').weekday(7).format('YYYY-MM-DD');
-        var startW = moment(startDate).isoWeek();
-        var endW = moment(endDate).isoWeek();
         var chartType = "line";
         var chartData = {
             x_axis: [],
             datasets: []
         };
-        setWeek(startW, endW);
-        console.log("===================",startDate,endDate,startW,endW,moment(startDate).format('W'),moment(endDate).format('W'));
+        setWeek(startDate, endDate);
 
         $('#datepickerStart, #datepickerEnd').datepicker({
             //showOn: "both",
@@ -142,15 +139,13 @@
                 console.log("Selected date: " + dateText + ", Current Selected Value= " + this.value + " this.id" + this.id);
                 if(this.id == "datepickerStart") {
                     startDate = new Date(this.value);
-                    startW = moment(startDate).isoWeek();
                 }
                 if(this.id == "datepickerEnd") {
                     endDate = new Date(this.value);
-                    endW = moment(endDate).isoWeek();
                 }
 
                 $(this).change();
-                setWeek(startW, endW);
+                setWeek(startDate, endDate);
             }
         })
         .on("change", function() {

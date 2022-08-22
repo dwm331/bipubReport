@@ -7,9 +7,10 @@ function showWeek() {
     str += ", 今天日期: " + moment().format('MM-DD');
     $('#subTitle').text(str);
 }
+
 function setWeek(startW, endW) {
     var str = "";
-    str += "當前查詢週次: 第" + startW+ "週" + "~" + "第" + endW+ "週";
+    str += "當前查詢週次: "+moment(startW).format('YYYY') + "第" + moment(startW).format('W')+ "週" + "~" + moment(endW).format('YYYY') + "第" + moment(endW).format('W')+ "週";
     $('#alertWeek').text(str);
 }
 
@@ -284,25 +285,25 @@ function getChartData(dateType, startDate, endDate, search_country, search_produ
     if(dateType == "week") {
         x_axis.forEach(function(element){
             var week = element.split("-")[1];
-            var tmp = reports.result22.find(item => item.yyyyww == "2022-"+week);
+            var tmp = reports.result22.find(item => item.yyyyww == "2022-"+week.toString().padStart(2,"0"));
             if(tmp != null) {
                 xxValues22.push(tmp.total);
             } else {
                 xxValues22.push(0);
             }
-            var tmp2 = reports.result21.find(item => item.yyyyww == "2021-"+week);
+            var tmp2 = reports.result21.find(item => item.yyyyww == "2021-"+week.toString().padStart(2,"0"));
             if(tmp2 != null) {
                 xxValues21.push(tmp2.total);
             } else {
                 xxValues21.push(0);
             }
-            var tmp3 = reports.result20.find(item => item.yyyyww == "2020-"+week);
+            var tmp3 = reports.result20.find(item => item.yyyyww == "2020-"+week.toString().padStart(2,"0"));
             if(tmp3 != null) {
                 xxValues20.push(tmp3.total);
             } else {
                 xxValues20.push(0);
             }
-            var tmp4 = reports.result19.find(item => item.yyyyww == "2019-"+week);
+            var tmp4 = reports.result19.find(item => item.yyyyww == "2019-"+week.toString().padStart(2,"0"));
             if(tmp4 != null) {
                 xxValues19.push(tmp4.total);
             } else {
