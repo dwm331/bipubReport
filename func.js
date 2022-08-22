@@ -139,6 +139,29 @@ function changeChartType(tctx, tmyChart, chartType, _tconfig) {
     return new Chart(tctx, temp);
 }
 
+function changeDateFormatType(tctx, tmyChart, search_dateformat, _tconfig) {
+    var temp = jQuery.extend(true, {}, _tconfig);
+    if(search_dateformat == "week") {
+        temp.options.scales.x = {
+            title: {
+                display: true,
+                text: '日期'
+            }
+        };
+    } else {
+        temp.options.scales.x = {
+            type: 'time',
+            title: {
+                display: true,
+                text: '日期'
+            }
+        };
+    }
+
+    if (tmyChart) {    tmyChart.destroy();  }
+    return new Chart(tctx, temp);
+}
+
 
 function refleshChart(myChart, chartType, chartdatas) {
     myChart.data.labels = chartdatas.x_axis;

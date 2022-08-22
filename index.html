@@ -185,7 +185,7 @@
             search_dateformat = $(this).val();
             // get report data
             chartdatas = getChartData(search_dateformat, startDate, endDate, search_country, search_product, yearSelectList);
-
+            myChart = changeDateFormatType(ctx, myChart, search_dateformat, _config)
             refleshChart(myChart, chartType, chartdatas);
         });
 
@@ -227,7 +227,6 @@
                 },
                 scales: {
                     x: {
-                        //type: 'time',
                         title: {
                             display: true,
                             text: '日期'
