@@ -20,11 +20,11 @@
 <div class="container text-center">
     <div class="col-md-6 px-0">
         <h1 class="display-4 font-italic">特別進口統計圖</h1>
-        <p class="lead my-3" id="subTitle"></p>
+        <p class="lead fs-6" id="subTitle"></p>
     </div>
     <div class="row">
-      <div class="col">
-        <div class="alert alert-primary" role="alert">
+      <div class="col-12 col-md-6">
+        <div class="alert alert-primary text-lg-start  text-start fs-6" role="alert">
             提示!<br>
             1.選擇國家，選擇蔬菜，改變年份，會自動更新圖表<br>
             2.改變日期，要按下更新按鈕才會自動更新圖表<br>
@@ -42,7 +42,7 @@
         </div>
         <hr>
         <div class="row">
-            <label for="DateFormatSelect">時間單位</label>
+            <label for="DateFormatSelect" class="bg-secondary text-white w-100">時間單位</label>
             <select class="form-select" aria-label="Default select example" id="DateFormatSelect">
                 <option value="week" selected>週數</option>
                 <option value="day">天</option>
@@ -56,29 +56,30 @@
             </select>
         </div-->
       </div>
-      <div class="col">
-        <label for="yearList">年分</label>
+      <div class="col-12 col-md-6">
+        <label for="yearList" class="bg-secondary text-white w-100">年分</label>
         <ul class="list-group" id="yearList">
         </ul>
       </div>
     </div>
     <hr>
     <div class="row">
-        <div class="col-1">
+        <div class="col-12 col-lg-1 bg-secondary text-white">
             日期區間
         </div>
-        <div class="col-4">
+        <div class="col-12 col-lg-4">
             <label for="datepickerStart">開始時間:</label>
             <input type="text" id="datepickerStart">
         </div>
-        <div class="col-4">
+        <div class="col-12 col-lg-4">
             <label for="datepickerEnd">結束時間:</label>
             <input type="text" id="datepickerEnd">
         </div>
-        <div class="col-3">
-            <button type="button" class="btn btn-primary" id="RefreshChartsBtn">更新</button>
+        <div class="col-12 col-lg-3">
+            <button type="button" class="btn btn-primary w-100" id="RefreshChartsBtn">更新</button>
         </div>
     </div>
+    <hr>
     <div class="row">
         <div class="alert alert-success" role="alert" id="alertWeek">
         </div>
