@@ -13,13 +13,42 @@ function setWeek(startW, endW) {
     $('#alertWeek').text(str);
 }
 
-function getXaxis(startDate, enDate) {
-    console.log(startDate.getDate(),  enDate.getDate())
-    if(startDate.getMonth() != enDate.getMonth()) {
-        return paddingDate(startDate).concat(paddingDate(enDate, "reverse"));
+function getXaxis(dateType, startDateStr, enDateStr) {
+    var startDate = moment(startDateStr).toDate();
+    var enDate = moment(enDateStr).toDate();
+    console.log("[getXaxis]", startDate.getDate(),  enDate.getDate())
+    if(dateType == "week") {
+        var startW= moment(startDate).format('yyyy-W');
+        var endW = moment(enDate).format('yyyy-W'); //本週日
+        return paddingWeek(startW, endW);
     } else {
-        return paddingTwoDate(startDate, enDate);
+        if(startDate.getMonth() != enDate.getMonth()) {
+            return paddingDate(startDate).concat(paddingDate(enDate, "reverse"));
+        } else {
+            return paddingTwoDate(startDate, enDate);
+        }
     }
+}
+
+function paddingWeek(startW, endW) {
+    var stAry = startW.split("-"); // 2022-33 年-週數
+    var lastDate = moment(stAry[0]+"-12-31").format('yyyy-W');
+    var lastAry = lastDate.split("-");
+    var enAry = endW.split("-"); // 2022-35
+    var Xaxis = [];
+    if(parseInt(stAry[0]) < parseInt(enAry[0])) {
+        for(var i = parseInt(stAry[1]); i <= parseInt(lastAry[1]); i++) {
+            Xaxis.push(stAry[0]+"-"+i);
+        }
+        for(var i = 1; i <= parseInt(enAry[1]); i++) {
+            Xaxis.push(enAry[0]+"-"+i);
+        }
+    } else {
+        for(var i = parseInt(stAry[1]); i <= parseInt(enAry[1]); i++) {
+            Xaxis.push(stAry[0]+"-"+i);
+        }
+    }
+    return Xaxis;
 }
 
 function paddingDate(dt, direction) {
@@ -178,7 +207,7 @@ function getChartData(dateType, startDate, endDate, search_country, search_produ
         return chartData;
     }
 
-    x_axis = getXaxis(startDate, endDate);
+    x_axis = getXaxis(dateType, startDate, endDate);
     console.log(x_axis);
 
     var reports = {
@@ -222,7 +251,7 @@ function getChartData(dateType, startDate, endDate, search_country, search_produ
         });
     }
     
-    //console.log(reports);
+    console.log(reports);
 
     xxValues22 = [];
     xxValues21 = [];
@@ -231,25 +260,26 @@ function getChartData(dateType, startDate, endDate, search_country, search_produ
     
     if(dateType == "week") {
         x_axis.forEach(function(element){
-            var tmp = reports.result22.find(item => moment(element).isoWeek() == moment(element).isoWeek());
+            var week = element.split("-")[1];
+            var tmp = reports.result22.find(item => item.yyyyww == "2022-"+week);
             if(tmp != null) {
                 xxValues22.push(tmp.total);
             } else {
                 xxValues22.push(0);
             }
-            var tmp2 = reports.result21.find(item => moment(item.date).format('W') == moment(element).format('W'));
+            var tmp2 = reports.result21.find(item => item.yyyyww == "2021-"+week);
             if(tmp2 != null) {
                 xxValues21.push(tmp2.total);
             } else {
                 xxValues21.push(0);
             }
-            var tmp3 = reports.result20.find(item => moment(item.date).format('W') == moment(element).format('W'));
+            var tmp3 = reports.result20.find(item => item.yyyyww == "2020-"+week);
             if(tmp3 != null) {
                 xxValues20.push(tmp3.total);
             } else {
                 xxValues20.push(0);
             }
-            var tmp4 = reports.result19.find(item => moment(item.date).format('W') == moment(element).format('W'));
+            var tmp4 = reports.result19.find(item => item.yyyyww == "2019-"+week);
             if(tmp4 != null) {
                 xxValues19.push(tmp4.total);
             } else {

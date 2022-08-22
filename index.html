@@ -124,6 +124,7 @@
         };
         setWeek(startW, endW);
         console.log("===================",startDate,endDate,startW,endW,moment(startDate).format('W'),moment(endDate).format('W'));
+
         $('#datepickerStart, #datepickerEnd').datepicker({
             //showOn: "both",
             weekHeader: "週",
@@ -226,7 +227,7 @@
                 },
                 scales: {
                     x: {
-                        type: 'time',
+                        //type: 'time',
                         title: {
                             display: true,
                             text: '日期'
