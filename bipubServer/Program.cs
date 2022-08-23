@@ -28,6 +28,8 @@ namespace BipubServer
 
         // GIT 位置
         private static string GIT_REPOSITORY = ConfigurationManager.AppSettings["GIT_REPOSITORY"];
+        private static string GIT_USERNAME = ConfigurationManager.AppSettings["GIT_USERNAME"];
+        private static string GIT_PASSWORD = ConfigurationManager.AppSettings["GIT_PASSWORD"];
 
         private static string connString = ConfigurationManager.ConnectionStrings["connString"].ConnectionString;
 
@@ -66,11 +68,19 @@ namespace BipubServer
                 repo.Index.Write();
 
                 // Create the committer's signature and commit
-                Signature author = new Signature("sam tu", "t9618006@ntut.org.tw", DateTime.Now);
+                Signature author = new Signature("Auto Robot", "t9618006@ntut.org.tw", DateTime.Now);
                 Signature committer = author;
 
                 // Commit to the repository
                 Commit commit = repo.Commit($"Update SQLite! ({DateTime.Today.ToString("yyyy-MM-dd")})", author, committer);
+
+                Remote remote = repo.Network.Remotes["origin"];
+                var options = new PushOptions();
+                options.CredentialsProvider = (_url, _user, _cred) =>
+                    new UsernamePasswordCredentials { Username = GIT_USERNAME, Password = GIT_PASSWORD };
+                repo.Network.Push(remote, @"refs/heads/master");
+
+                SaveLog($"======完成更新git SqlitDB====== commit:{commit.Id}");
             }
         }
 
