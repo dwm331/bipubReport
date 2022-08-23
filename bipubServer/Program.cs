@@ -1,7 +1,8 @@
 ﻿using HtmlAgilityPack;
-
+using LibGit2Sharp;
 using System.Configuration;
 using System.Data;
+using System.Data.Common;
 using System.Data.SQLite;
 using System.Reflection;
 
@@ -25,6 +26,8 @@ namespace BipubServer
         // API 指定時間
         private static string Data_End_Time = ConfigurationManager.AppSettings["Data_End_Time"];
 
+        // GIT 位置
+        private static string GIT_REPOSITORY = ConfigurationManager.AppSettings["GIT_REPOSITORY"];
 
         private static string connString = ConfigurationManager.ConnectionStrings["connString"].ConnectionString;
 
@@ -41,17 +44,43 @@ namespace BipubServer
             //string sqlQuery = "select * from product";
             //GetDataTable(sqlQuery);
             
-            string a = await GetData();
+            int nums = await GetData();
+            if (nums > 0)
+            {
+                TransWeekData();
+                UpdateSqlitDB();
+            }
+            else {
+                SaveLog($"======Week 沒有資料可以更新======");
+            }
 
             SaveLog($"======結束執行{WorkProcess}程式version:{version}======");
         }
+        public static void UpdateSqlitDB()
+        {
+            SaveLog($"======開始更新git SqlitDB======");
+            using (var repo = new Repository(GIT_REPOSITORY))
+            {
+                // Stage the file
+                repo.Index.Add("bipubServer/SQLite/20220811.db");
+                repo.Index.Write();
+
+                // Create the committer's signature and commit
+                Signature author = new Signature("sam tu", "t9618006@ntut.org.tw", DateTime.Now);
+                Signature committer = author;
+
+                // Commit to the repository
+                Commit commit = repo.Commit($"Update SQLite! ({DateTime.Today.ToString("yyyy-MM-dd")})", author, committer);
+            }
+        }
+
         public static void SaveLog(string msg)
         {
             Console.WriteLine(msg);
             logger.Append(msg);
         }
 
-        public static async Task<string> GetData()
+        public static async Task<int> GetData()
         {
             string startDate = "";
             string endDate = "";
@@ -158,8 +187,9 @@ namespace BipubServer
                         //string reqString = System.Text.Json.JsonSerializer.Serialize(products);
                         //Console.WriteLine("===products>>" + reqString);
                         SaveLog($"[GetData] 讀取完畢");
-                        insertData(products);
-                        return response;
+                        if(products.Count > 0)
+                            insertData(products);
+                        return products.Count;
                     }
                     else
                     {
@@ -176,7 +206,30 @@ namespace BipubServer
                 SaveLog($"[GetData] 發生不可預期錯誤: {ex.ToString()}");
             }
 
-            return "";
+            return 0;
+        }
+
+        /// <summary>更新每周數量</summary>
+        /// <returns></returns>
+        private static void TransWeekData()
+        {
+            SaveLog($"[TransWeekData] 更新資料中");
+
+            string sqlQuery = $@"SELECT strftime('%Y-%W', date ) as yyyyww , sum(weights) as total, country, itemcode
+                                            from quantum
+                                            GROUP BY yyyyww, itemcode, country;";
+            DataTable weeks = GetDataTable(sqlQuery);
+            if (weeks.Rows.Count > 0)
+            {
+                TruncateData("quantrunWeek");
+                insertWeekData(weeks);
+            }
+            else
+            {
+                SaveLog($"[TransWeekData] 沒有資料需要更新");
+            }
+
+            SaveLog($"[TransWeekData] 更新完成");
         }
 
         /// <summary>建立資料庫連線</summary>
@@ -228,23 +281,107 @@ namespace BipubServer
             }
         }
 
+        private static void insertWeekData(DataTable datas)
+        {
+            SaveLog($"[insertWeekData] 更新資料中");
+            var connection = OpenConnection(connString);
+            using (SQLiteTransaction tran = connection.BeginTransaction())
+            {
+                try
+                {
+                    foreach (DataRow r in datas.Rows)
+                    {
+                        var cmd = connection.CreateCommand();
+                        //cmd.CommandText = $"INSERT INTO quantum VALUES('{p.Date}', '{p.Itemcode}', '{p.Country}', '{p.Weights}')";
+                        cmd.CommandText = $@"INSERT INTO quantrunWeek VALUES ('{r["yyyyww"]}', '{r["total"]}', '{r["country"]}', '{r["itemcode"]}');";
+                        //Console.WriteLine($@"INSERT INTO quantrunWeek VALUES ('{r["yyyyww"]}', '{r["total"]}', '{r["country"]}', '{r["itemcode"]}');");
+                        cmd.ExecuteNonQuery();
+                    }
+                    tran.Commit();
+                    SaveLog($"[insertWeekData] 更新完畢");
+                }
+                catch (Exception ex)
+                {
+                    tran.Rollback();
+                    SaveLog($"[insertWeekData] 資料錯誤  將關閉程式 {ex.ToString()}");
+                    Environment.Exit(0);
+                }
+                finally
+                {
+                    if (connection.State == ConnectionState.Open) connection.Close();
+                }
+            }
+        }
+
+        /// <summary>刪除Table</summary>
+        /// <param name="datas">資料</param>
+        private static void TruncateData(string tableName)
+        {
+            SaveLog($"[TruncateData] 更新資料中");
+            var connection = OpenConnection(connString);
+            using (SQLiteTransaction tran = connection.BeginTransaction())
+            {
+                try
+                {
+                    var cmd = connection.CreateCommand();
+                    cmd.CommandText = $@"Delete FROM  {tableName};";
+                    cmd.ExecuteNonQuery();
+                    tran.Commit();
+                    SaveLog($"[TruncateData] 刪除完畢");
+                }
+                catch (Exception ex)
+                {
+                    tran.Rollback();
+                    SaveLog($"[TruncateData] 資料錯誤  將關閉程式 {ex.ToString()}");
+                    Environment.Exit(0);
+                }
+                finally
+                {
+                    if (connection.State == ConnectionState.Open) connection.Close();
+                }
+            }
+        }
+
         /// <summary>讀取資料</summary>
         /// <param name="sqlQuery">資料查詢的 SQL 語句</param>
         /// <returns></returns>
         private static DataTable GetDataTable(string sqlQuery)
         {
+            ///定義DataTable
+            DataTable datatable = new DataTable();
             var connection = OpenConnection(connString);
-            DataTable dt = new DataTable();
             try
             {
-                SQLiteCommand command = new SQLiteCommand(sqlQuery, connection);
-                SQLiteDataReader reader = command.ExecuteReader();
-                dt.Load(reader);
-                //while (reader.Read())
-                //    Console.WriteLine("code: " + reader["code"] + "\tname: " + reader["name"]);
-                foreach (DataRow r in dt.Rows)
+                using (SQLiteCommand command = new SQLiteCommand(sqlQuery, connection))
                 {
-                    Console.WriteLine("code: " + r["code"] + "\tname: " + r["name"]);
+                    using (SQLiteDataReader reader = command.ExecuteReader())
+                    {
+                        if (reader.HasRows)
+                        {
+                            ///動態添加表的數據列
+                            for (int i = 0; i < reader.FieldCount; i++)
+                            {
+                                DataColumn myDataColumn = new DataColumn();
+                                myDataColumn.DataType = reader.GetFieldType(i);
+                                myDataColumn.ColumnName = reader.GetName(i);
+                                datatable.Columns.Add(myDataColumn);
+                            }
+
+                            ///添加表的數據
+                            while (reader.Read())
+                            {
+                                //Console.WriteLine($"'{reader["yyyyww"]}', '{reader["total"]}', '{reader["country"]}', '{reader["itemcode"]}'");
+                                DataRow myDataRow = datatable.NewRow();
+                                for (int i = 0; i < reader.FieldCount; i++)
+                                {
+                                    myDataRow[i] = reader[i].ToString();
+                                }
+                                datatable.Rows.Add(myDataRow);
+                                myDataRow = null;
+                            }
+                        }
+                        reader.Close();
+                    }
                 }
             }
             catch (Exception ex)
@@ -256,9 +393,8 @@ namespace BipubServer
             {
                 if (connection.State == ConnectionState.Open) connection.Close();
             }
-            return dt;
+            return datatable;
         }
-
 
         public static bool CheckFormat(string value)
         {
