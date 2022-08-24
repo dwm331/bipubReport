@@ -5,6 +5,8 @@ using System.Data;
 using System.Data.Common;
 using System.Data.SQLite;
 using System.Reflection;
+using System.Text;
+using System.Text.Json;
 
 namespace BipubServer
 {
@@ -31,6 +33,9 @@ namespace BipubServer
         private static string GIT_USERNAME = ConfigurationManager.AppSettings["GIT_USERNAME"];
         private static string GIT_PASSWORD = ConfigurationManager.AppSettings["GIT_PASSWORD"];
 
+        // JS更新資料庫檔案
+        private static string JS_DATAFILE_PATH = ConfigurationManager.AppSettings["JS_DATAFILE_PATH"];
+
         private static string connString = ConfigurationManager.ConnectionStrings["connString"].ConnectionString;
 
 
@@ -43,14 +48,15 @@ namespace BipubServer
             SaveLog($"SQL路徑: {connString}");
 
             // test 
-            //string sqlQuery = "select * from product";
+            //string sqlQuery = "select * from quantum";
             //GetDataTable(sqlQuery);
-            
-            int nums = await GetData();
+
+            int nums = await GetData(); // 爬蟲網頁資料
             if (nums > 0)
             {
-                TransWeekData();
-                UpdateSqlitDB();
+                TransWeekData(); // 轉換Rowdata to week
+                await UpdateDBDataJS(); // Write To JS DB file
+                UpdateSqlitDB(); // Deploy to GitHub
             }
             else {
                 SaveLog($"======Week 沒有資料可以更新======");
@@ -60,11 +66,12 @@ namespace BipubServer
         }
         public static void UpdateSqlitDB()
         {
-            SaveLog($"======開始更新git SqlitDB======");
+            SaveLog($"======開始Deploy To GitHub======");
             using (var repo = new Repository(GIT_REPOSITORY))
             {
                 // Stage the file
                 repo.Index.Add("bipubServer/SQLite/20220811.db");
+                repo.Index.Add("DBdata.js");
                 repo.Index.Write();
 
                 // Create the committer's signature and commit
@@ -80,7 +87,7 @@ namespace BipubServer
                     new UsernamePasswordCredentials { Username = GIT_USERNAME, Password = GIT_PASSWORD };
                 repo.Network.Push(remote, @"refs/heads/master");
 
-                SaveLog($"======完成更新git SqlitDB====== commit:{commit.Id}");
+                SaveLog($"======完成Deploy To GitHub====== commit:{commit.Id}");
             }
         }
 
@@ -88,6 +95,66 @@ namespace BipubServer
         {
             Console.WriteLine(msg);
             logger.Append(msg);
+        }
+        public static async Task UpdateDBDataJS()
+        {
+            SaveLog($"======開始更新JS 資料庫文件======" + JS_DATAFILE_PATH);
+            DataTable products = GetDataTable("select * from product");
+            List<DB_Product> productList = new List<DB_Product>();
+            foreach (DataRow r in products.Rows)
+            {
+                //Console.WriteLine(JsonSerializer.Serialize(r.ItemArray)); ;
+                productList.Add(new DB_Product
+                {
+                    id = r["id"].ToString(),
+                    code = r["code"].ToString(),
+                    name = r["name"].ToString()
+                });
+            }
+
+            DataTable quantums = GetDataTable("select * from quantum");
+            List<DB_Quantum> quantumList = new List<DB_Quantum>();
+            foreach (DataRow r in quantums.Rows)
+            {
+                //Console.WriteLine(JsonSerializer.Serialize(r.ItemArray)); ;
+                quantumList.Add(new DB_Quantum
+                {
+                    Date = r["Date"].ToString(),
+                    Itemcode = r["Itemcode"].ToString(),
+                    Country = r["Country"].ToString(),
+                    Weights = r["Weights"].ToString()
+                });
+            }
+
+            DataTable quantumWeeks = GetDataTable("select * from quantrunWeek");
+            List<DB_QuantrunWeek> quantumWeeksList = new List<DB_QuantrunWeek>();
+            foreach (DataRow r in quantumWeeks.Rows)
+            {
+                //Console.WriteLine(JsonSerializer.Serialize(r.ItemArray)); ;
+                quantumWeeksList.Add(new DB_QuantrunWeek
+                {
+                    yyyyww = r["yyyyww"].ToString(),
+                    total = r["total"].ToString(),
+                    country = r["country"].ToString(),
+                    itemcode = r["itemcode"].ToString()
+                });
+            }
+            string[] lines = {
+                "let DB_Products = [];",
+                "let DB_Quantums = [];",
+                "let DB_QuantumWeek = [];",
+                $"let DB_ProductsStr = '{JsonSerializer.Serialize(productList)}'",
+                $"let DB_QuantumsStr = '{JsonSerializer.Serialize(quantumList)}'",
+                $"let DB_QuantumWeekStr = '{JsonSerializer.Serialize(quantumWeeksList)}'",
+                $"let DB_UpdateTime = '{DateTime.Today.ToString("yyyy-MM-dd")}'"
+            };
+
+            using StreamWriter file = new(JS_DATAFILE_PATH);
+            foreach (string line in lines)
+            {
+                await file.WriteLineAsync(line);
+            }
+            SaveLog($"======完成更新JS 資料庫文件======");
         }
 
         public static async Task<int> GetData()
@@ -327,7 +394,7 @@ namespace BipubServer
         /// <param name="datas">資料</param>
         private static void TruncateData(string tableName)
         {
-            SaveLog($"[TruncateData] 更新資料中");
+            SaveLog($"[TruncateData] 清除{tableName}舊資料中");
             var connection = OpenConnection(connString);
             using (SQLiteTransaction tran = connection.BeginTransaction())
             {
@@ -440,6 +507,29 @@ namespace BipubServer
         public string Itemcode { get; set; }
         public string Country { get; set; }
         public string Weights { get; set; }
+    }
+
+    public class DB_Product
+    {
+        public string id { get; set; }
+        public string code { get; set; }
+        public string name { get; set; }
+    }
+
+    public class DB_Quantum
+    {
+        public string Date { get; set; }
+        public string Itemcode { get; set; }
+        public string Country { get; set; }
+        public string Weights { get; set; }
+    }
+
+    public class DB_QuantrunWeek
+    {
+        public string yyyyww { get; set; }
+        public string total { get; set; }
+        public string country { get; set; }
+        public string itemcode { get; set; }
     }
 
 }

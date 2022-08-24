@@ -1,9 +1,8 @@
 ﻿################################################################################
 # 針對專案維護
 ################################################################################
-/RNWhiteListAPI/SQLite
-/RNWhiteListAPI/bin
-/RNWhiteListAPI/obj
+/bipubServer/bin
+/bipubServer/obj
 appsettings.Development.json
 /coveragereport/*
 !.gitignore

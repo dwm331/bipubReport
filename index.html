@@ -98,6 +98,12 @@
         layoutSelectItems(countryTag, "countrySelect");
 
         var labelDProducts = {};
+
+        // init
+        DB_Products = JSON.parse(DB_ProductsStr);
+        DB_Quantums = JSON.parse(DB_QuantumsStr);
+        DB_QuantumWeek = JSON.parse(DB_QuantumWeekStr);
+
         DB_Products.forEach(function(element){
             labelDProducts[element.code] = element.name
         });
