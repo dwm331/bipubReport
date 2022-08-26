@@ -1,9 +1,15 @@
 ﻿using HtmlAgilityPack;
 using LibGit2Sharp;
+using LibGit2Sharp.Handlers;
+using Microsoft.AspNetCore.StaticFiles;
+using Newtonsoft.Json;
 using System.Configuration;
 using System.Data;
 using System.Data.Common;
 using System.Data.SQLite;
+using System.Drawing;
+using System.Drawing.Drawing2D;
+using System.Drawing.Imaging;
 using System.Reflection;
 using System.Text;
 using System.Text.Json;
@@ -33,6 +39,11 @@ namespace BipubServer
         private static string GIT_USERNAME = ConfigurationManager.AppSettings["GIT_USERNAME"];
         private static string GIT_PASSWORD = ConfigurationManager.AppSettings["GIT_PASSWORD"];
 
+        // 圖片轉檔
+        private static string IMAGES_JSON_DATA_PATH = ConfigurationManager.AppSettings["IMAGES_JSON_DATA_PATH"];
+        private static string IMAGES_PATH = ConfigurationManager.AppSettings["IMAGES_PATH"];
+        private static string SQL_FILE_PATH = ConfigurationManager.AppSettings["SQL_FILE_PATH"];
+
         // JS更新資料庫檔案
         private static string JS_DATAFILE_PATH = ConfigurationManager.AppSettings["JS_DATAFILE_PATH"];
 
@@ -51,6 +62,9 @@ namespace BipubServer
             //string sqlQuery = "select * from quantum";
             //GetDataTable(sqlQuery);
 
+            // 圖片轉sql
+            //await getImgage();
+
             int nums = await GetData(); // 爬蟲網頁資料
             if (nums > 0)
             {
@@ -64,9 +78,148 @@ namespace BipubServer
 
             SaveLog($"======結束執行{WorkProcess}程式version:{version}======");
         }
+
+        public static async Task getImgage()
+        {
+            string[] folderPaths = Directory.GetDirectories(Path.Combine(IMAGES_PATH), "*", SearchOption.TopDirectoryOnly);
+
+            List<spotData> spotDatas = new List<spotData>();
+            List<string> SimageLists = new List<string>();
+            List<string> LimageLists = new List<string>();
+            foreach (string folderPath in folderPaths)
+            {
+                Console.WriteLine($"folderPath: {folderPath} ");
+                string[] filePaths = Directory.GetFiles(folderPath);
+                foreach (string filePath in filePaths)
+                {
+                    Console.WriteLine($"filePath: {filePath}");
+                    string imgType = "jpeg";
+                    if (Path.GetExtension(filePath) == ".txt")
+                        break;
+
+                    string mimeType = GetMimeTypeForFileExtension(filePath);
+                    string content = $"data:{mimeType};base64,{GetBase64StringForImage(filePath)}";
+                    string uuid = Guid.NewGuid().ToString();
+                    string sql = @$"INSERT INTO [dbo].[CheckIn_FileInfo] ([fileId],[type],[content],[create_time]) VALUES('{uuid}', '{mimeType}', '{content}', '{DateTime.Now.ToString("yyyy-MM-dd")}');";
+                    SimageLists.Add(sql);
+
+                    spotDatas.Add(new spotData
+                    {
+                        seq = 1,
+                        mapName = "",
+                        mapPath = folderPath,
+                        mapPic_L = "",
+                        mapPic_S = ""
+                    });
+
+                    Bitmap bmp = (Bitmap)Bitmap.FromFile(filePath);
+                    Bitmap newImage = ResizeImage(bmp, 52, 52);
+                    //SaveLog(Convert.ToBase64String(ImageToByte(newImage))); // Get Base64);
+                }
+            }
+
+            using StreamWriter file = new(SQL_FILE_PATH);
+            foreach (string line in SimageLists)
+            {
+                await file.WriteLineAsync(line);
+            }
+        }
+        public static SpotMapJson getSubSpots(string folderName)
+        {
+            string jsonString = System.IO.File.ReadAllText(IMAGES_JSON_DATA_PATH);
+            List<SpotMapJson> entities = JsonConvert.DeserializeObject<List<SpotMapJson>>(jsonString);
+            return entities.Where(a => a.folderName == folderName).SingleOrDefault();
+        }
+
+        public static byte[] ImageToByte(Image img)
+        {
+            ImageConverter converter = new ImageConverter();
+            return (byte[])converter.ConvertTo(img, typeof(byte[]));
+        }
+
+        public static string GetMimeTypeForFileExtension(string filePath)
+        {
+            const string DefaultContentType = "application/octet-stream";
+
+            var provider = new FileExtensionContentTypeProvider();
+
+            if (!provider.TryGetContentType(filePath, out string contentType))
+            {
+                contentType = DefaultContentType;
+            }
+
+            return contentType;
+        }
+
+        /// <summary>
+        /// Resize the image to the specified width and height.
+        /// </summary>
+        /// <param name="image">The image to resize.</param>
+        /// <param name="width">The width to resize to.</param>
+        /// <param name="height">The height to resize to.</param>
+        /// <returns>The resized image.</returns>
+        public static Bitmap ResizeImage(Image image, int width, int height)
+        {
+            var destRect = new Rectangle(0, 0, width, height);
+            var destImage = new Bitmap(width, height);
+
+            destImage.SetResolution(image.HorizontalResolution, image.VerticalResolution);
+
+            using (var graphics = Graphics.FromImage(destImage))
+            {
+                graphics.CompositingMode = CompositingMode.SourceCopy;
+                graphics.CompositingQuality = CompositingQuality.HighQuality;
+                graphics.InterpolationMode = InterpolationMode.HighQualityBicubic;
+                graphics.SmoothingMode = SmoothingMode.HighQuality;
+                graphics.PixelOffsetMode = PixelOffsetMode.HighQuality;
+
+                using (var wrapMode = new ImageAttributes())
+                {
+                    wrapMode.SetWrapMode(WrapMode.TileFlipXY);
+                    graphics.DrawImage(image, destRect, 0, 0, image.Width, image.Height, GraphicsUnit.Pixel, wrapMode);
+                }
+            }
+
+            return destImage;
+        }
+
+        protected static string GetBase64StringForImage(string imgPath)
+        {
+            byte[] imageBytes = System.IO.File.ReadAllBytes(imgPath);
+            string base64String = Convert.ToBase64String(imageBytes);
+            return base64String;
+        }
+
+        public static void TestPush()
+        {
+            SaveLog($"======開始Deploy To GitHub======");
+            // https://docs.github.com/en/authentication/keeping-your-account-and-data-secure/creating-a-personal-access-token
+            var creds = new UsernamePasswordCredentials()
+            {
+                Username = GIT_USERNAME,
+                Password = GIT_PASSWORD
+            };
+            CredentialsHandler credHandler = (_url, _user, _cred) => creds;
+            var fetchOpts = new PushOptions { CredentialsProvider = credHandler };
+            using (var repo = new Repository(GIT_REPOSITORY))
+            {
+           
+                Remote remote = repo.Network.Remotes["origin"];
+                SaveLog(remote.PushUrl);
+                repo.Network.Push(remote, @"refs/heads/main", fetchOpts);
+
+                SaveLog($"======完成Deploy To GitHub======");
+            }
+        }
+
         public static void UpdateSqlitDB()
         {
             SaveLog($"======開始Deploy To GitHub======");
+            var options = new PushOptions();
+            options.CredentialsProvider = (_url, _user, _cred) =>
+                new UsernamePasswordCredentials { Username = GIT_USERNAME, Password = GIT_PASSWORD };
+
+            // https://docs.github.com/en/authentication/keeping-your-account-and-data-secure/creating-a-personal-access-token
             using (var repo = new Repository(GIT_REPOSITORY))
             {
                 // Stage the file
@@ -82,10 +235,9 @@ namespace BipubServer
                 Commit commit = repo.Commit($"Update SQLite! ({DateTime.Today.ToString("yyyy-MM-dd")})", author, committer);
 
                 Remote remote = repo.Network.Remotes["origin"];
-                var options = new PushOptions();
-                options.CredentialsProvider = (_url, _user, _cred) =>
-                    new UsernamePasswordCredentials { Username = GIT_USERNAME, Password = GIT_PASSWORD };
-                repo.Network.Push(remote, @"refs/heads/master");
+                
+                //var masterBranch = repo.Branches["master"];
+                repo.Network.Push(remote, @"refs/heads/main", options);
 
                 SaveLog($"======完成Deploy To GitHub====== commit:{commit.Id}");
             }
@@ -143,9 +295,9 @@ namespace BipubServer
                 "let DB_Products = [];",
                 "let DB_Quantums = [];",
                 "let DB_QuantumWeek = [];",
-                $"let DB_ProductsStr = '{JsonSerializer.Serialize(productList)}'",
-                $"let DB_QuantumsStr = '{JsonSerializer.Serialize(quantumList)}'",
-                $"let DB_QuantumWeekStr = '{JsonSerializer.Serialize(quantumWeeksList)}'",
+                $"let DB_ProductsStr = '{System.Text.Json.JsonSerializer.Serialize(productList)}'",
+                $"let DB_QuantumsStr = '{System.Text.Json.JsonSerializer.Serialize(quantumList)}'",
+                $"let DB_QuantumWeekStr = '{System.Text.Json.JsonSerializer.Serialize(quantumWeeksList)}'",
                 $"let DB_UpdateTime = '{DateTime.Today.ToString("yyyy-MM-dd")}'"
             };
 
@@ -531,5 +683,25 @@ namespace BipubServer
         public string country { get; set; }
         public string itemcode { get; set; }
     }
+    public class spotData
+    {
+        public int seq { get; set; }
+        public string mapName { get; set; }
+        public string mapPath { get; set; }
+        public string mapPic_S { get; set; }
+        public string mapPic_L { get; set; }
+    }
+    public class SpotMapJson
+    {
+        public string folderName { get; set; }
+        public string spot_id { get; set; }
+        public List<SpotJson> spots { get; set; }
+    }
 
+    public class SpotJson
+    {
+        public string fileName { get; set; }
+        public string mapName { get; set; }
+        public string mapPath { get; set; }
+    }
 }
