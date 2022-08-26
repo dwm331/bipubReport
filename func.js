@@ -259,9 +259,9 @@ function getChartData(dateType, startDate, endDate, search_country, search_produ
         });
     } else if(dateType == "day") {
         DB_Quantums.forEach(function(element){
-            var dt = element.date.split("-");
+            var dt = element.Date.split("-");
             var tYear = dt[0];
-            if(element.country === search_country && element.itemcode == search_product) {
+            if(element.Country === search_country && element.Itemcode == search_product) {
                 if(tYear == 2019) {
                     reports.result19.push(element);
                 } else if(tYear == 2020) {
@@ -312,27 +312,27 @@ function getChartData(dateType, startDate, endDate, search_country, search_produ
         });
     } else if(dateType == "day") {
         x_axis.forEach(function(element){
-            var tmp = reports.result22.find(item => item.date == element);
+            var tmp = reports.result22.find(item => item.Date == element);
             if(tmp != null) {
-                xxValues22.push(tmp.weights);
+                xxValues22.push(tmp.Weights);
             } else {
                 xxValues22.push(0);
             }
-            var tmp2 = reports.result21.find(item => moment(item.date).format('MM-DD') == moment(element).format('MM-DD'));
+            var tmp2 = reports.result21.find(item => moment(item.Date).format('MM-DD') == moment(element).format('MM-DD'));
             if(tmp2 != null) {
-                xxValues21.push(tmp2.weights);
+                xxValues21.push(tmp2.Weights);
             } else {
                 xxValues21.push(0);
             }
-            var tmp3 = reports.result20.find(item => moment(item.date).format('MM-DD') == moment(element).format('MM-DD'));
+            var tmp3 = reports.result20.find(item => moment(item.Date).format('MM-DD') == moment(element).format('MM-DD'));
             if(tmp3 != null) {
-                xxValues20.push(tmp3.weights);
+                xxValues20.push(tmp3.Weights);
             } else {
                 xxValues20.push(0);
             }
-            var tmp4 = reports.result19.find(item => moment(item.date).format('MM-DD') == moment(element).format('MM-DD'));
+            var tmp4 = reports.result19.find(item => moment(item.Date).format('MM-DD') == moment(element).format('MM-DD'));
             if(tmp4 != null) {
-                xxValues19.push(tmp4.weights);
+                xxValues19.push(tmp4.Weights);
             } else {
                 xxValues19.push(0);
             }
