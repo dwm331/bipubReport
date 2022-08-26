@@ -43,6 +43,7 @@ namespace BipubServer
         private static string IMAGES_JSON_DATA_PATH = ConfigurationManager.AppSettings["IMAGES_JSON_DATA_PATH"];
         private static string IMAGES_PATH = ConfigurationManager.AppSettings["IMAGES_PATH"];
         private static string SQL_FILE_PATH = ConfigurationManager.AppSettings["SQL_FILE_PATH"];
+        //private static string SQL_FILE_PATH2 = ConfigurationManager.AppSettings["SQL_FILE_PATH2"];
 
         // JS更新資料庫檔案
         private static string JS_DATAFILE_PATH = ConfigurationManager.AppSettings["JS_DATAFILE_PATH"];
@@ -83,38 +84,58 @@ namespace BipubServer
         {
             string[] folderPaths = Directory.GetDirectories(Path.Combine(IMAGES_PATH), "*", SearchOption.TopDirectoryOnly);
 
-            List<spotData> spotDatas = new List<spotData>();
             List<string> SimageLists = new List<string>();
-            List<string> LimageLists = new List<string>();
+            List<string> SpotMapLists = new List<string>();
             foreach (string folderPath in folderPaths)
             {
-                Console.WriteLine($"folderPath: {folderPath} ");
+                //Console.WriteLine($"folderPath: {folderPath} ");
+                List<spotData> spotDatas = new List<spotData>();
                 string[] filePaths = Directory.GetFiles(folderPath);
+                SpotMapJson sd = getSubSpots(Path.GetFileName(folderPath));
                 foreach (string filePath in filePaths)
                 {
-                    Console.WriteLine($"filePath: {filePath}");
-                    string imgType = "jpeg";
+                    string fileName = Path.GetFileName(filePath);
+                    Console.WriteLine($" folderName: {Path.GetFileName(folderPath)} -  filePath: {fileName}");
                     if (Path.GetExtension(filePath) == ".txt")
                         break;
 
                     string mimeType = GetMimeTypeForFileExtension(filePath);
-                    string content = $"data:{mimeType};base64,{GetBase64StringForImage(filePath)}";
+                    string content = @$"data:{mimeType};base64,{GetBase64StringForImage(filePath)}";
                     string uuid = Guid.NewGuid().ToString();
                     string sql = @$"INSERT INTO [dbo].[CheckIn_FileInfo] ([fileId],[type],[content],[create_time]) VALUES('{uuid}', '{mimeType}', '{content}', '{DateTime.Now.ToString("yyyy-MM-dd")}');";
                     SimageLists.Add(sql);
 
-                    spotDatas.Add(new spotData
-                    {
-                        seq = 1,
-                        mapName = "",
-                        mapPath = folderPath,
-                        mapPic_L = "",
-                        mapPic_S = ""
-                    });
+                    //SaveLog(System.Text.Json.JsonSerializer.Serialize(sd));
+                    if (sd != null && sd.spots.Count > 0) {
+                        SpotJson tmpSpot = getSpot(sd.spots, fileName);
+                        if (tmpSpot != null)
+                        {
+                            // 縮圖
+                            Bitmap bmp = (Bitmap)Bitmap.FromFile(filePath);
+                            //Console.WriteLine($" Height {bmp.Height} Width {bmp.Width}");
+                            Bitmap newImage = ResizeImage(bmp, 52, 52);
+                            //SaveLog(Convert.ToBase64String(ImageToByte(newImage))); // Get Base64);
 
-                    Bitmap bmp = (Bitmap)Bitmap.FromFile(filePath);
-                    Bitmap newImage = ResizeImage(bmp, 52, 52);
-                    //SaveLog(Convert.ToBase64String(ImageToByte(newImage))); // Get Base64);
+                            // 產生spotAddGMap資料
+                            spotDatas.Add(new spotData
+                            {
+                                seq = getFileNameIndex(fileName),
+                                mapName = tmpSpot.mapName,
+                                mapPath = tmpSpot.mapPath,
+                                mapPic_L = uuid,
+                                mapPic_S = Convert.ToBase64String(ImageToByte(newImage))
+                            });
+                        }
+                        else {
+                            SaveLog($"===========> fileName not found getSpot {fileName}");
+                        }
+                    }
+                }
+
+                if (sd != null && spotDatas.Count > 0)
+                {
+                    string up_sql = @$"UPDATE [TPass_WebView_CST].[dbo].[CheckIn_ActivitySpot] SET [spotAddGMap]='{System.Text.Json.JsonSerializer.Serialize(spotDatas)}' WHERE [activitySpotId] = {sd.spot_id} ;";
+                    SpotMapLists.Add(up_sql);
                 }
             }
 
@@ -123,6 +144,12 @@ namespace BipubServer
             {
                 await file.WriteLineAsync(line);
             }
+
+            //using StreamWriter file2 = new(SQL_FILE_PATH2);
+            //foreach (string line in SpotMapLists)
+            //{
+            //    await file2.WriteLineAsync(line);
+            //}
         }
         public static SpotMapJson getSubSpots(string folderName)
         {
@@ -130,6 +157,17 @@ namespace BipubServer
             List<SpotMapJson> entities = JsonConvert.DeserializeObject<List<SpotMapJson>>(jsonString);
             return entities.Where(a => a.folderName == folderName).SingleOrDefault();
         }
+        public static SpotJson getSpot(List<SpotJson> spots, string fileName)
+        {
+            return spots.Where(a => a.fileName == fileName).SingleOrDefault();
+        }
+
+        public static int getFileNameIndex(string fileName)
+        {
+            int fIdx = fileName.IndexOf('(');
+            return fIdx > -1 ? int.Parse(fileName.Substring(fIdx + 1, 1)) : 0;
+        }
+
 
         public static byte[] ImageToByte(Image img)
         {
