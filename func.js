@@ -14,6 +14,11 @@ function setWeek(startW, endW) {
     $('#alertWeek').text(str);
 }
 
+function showDBUpdate() {
+    var str = "資料最後更新時間: "+moment(DB_UpdateTime).format('YYYY-MM-DD')+"(凌晨)";
+    $('#DBUpdate').text(str);
+}
+
 function getXaxis(dateType, startDateStr, enDateStr) {
     var startDate = moment(startDateStr).toDate();
     var enDate = moment(enDateStr).toDate();

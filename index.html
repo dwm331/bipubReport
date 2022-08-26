@@ -21,6 +21,7 @@
     <div class="col-md-6 px-0">
         <h1 class="display-4 font-italic">特別進口統計圖</h1>
         <p class="lead fs-6" id="subTitle"></p>
+        <p class="lead fs-6" id="DBUpdate"  style="text-decoration:underline;"></p>
     </div>
     <div class="row">
       <div class="col-12 col-md-6">
@@ -94,6 +95,7 @@
 <script>
     $( function() {
         showWeek();
+        showDBUpdate();
         var countryTag = ["越南", "印度尼西亞", "泰國", "大韓民國(南韓)", "中華人民共和國", "日本", "美國", "澳大利亞", "加拿大", "墨西哥"];
         layoutSelectItems(countryTag, "countrySelect");
 
