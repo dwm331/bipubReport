@@ -102,7 +102,10 @@ namespace BipubServer
                     string mimeType = GetMimeTypeForFileExtension(filePath);
                     string content = @$"data:{mimeType};base64,{GetBase64StringForImage(filePath)}";
                     string uuid = Guid.NewGuid().ToString();
-                    string sql = @$"INSERT INTO [dbo].[CheckIn_FileInfo] ([fileId],[type],[content],[create_time]) VALUES('{uuid}', '{mimeType}', '{content}', '{DateTime.Now.ToString("yyyy-MM-dd")}');";
+                    // 縮圖
+                    Bitmap bmp = (Bitmap)Bitmap.FromFile(filePath);
+                    string sql = @$"INSERT INTO [dbo].[CheckIn_FileInfo] ([fileId],[type],[content],[create_time],[width],[height]) VALUES('{uuid}', '{mimeType}', '{content}', '{DateTime.Now.ToString("yyyy-MM-dd")}', '{bmp.Width}', '{bmp.Height}');";
+                    sql += "\nGO";
                     SimageLists.Add(sql);
 
                     //SaveLog(System.Text.Json.JsonSerializer.Serialize(sd));
@@ -110,8 +113,6 @@ namespace BipubServer
                         SpotJson tmpSpot = getSpot(sd.spots, fileName);
                         if (tmpSpot != null)
                         {
-                            // 縮圖
-                            Bitmap bmp = (Bitmap)Bitmap.FromFile(filePath);
                             //Console.WriteLine($" Height {bmp.Height} Width {bmp.Width}");
                             Bitmap newImage = ResizeImage(bmp, 52, 52);
                             //SaveLog(Convert.ToBase64String(ImageToByte(newImage))); // Get Base64);
@@ -123,7 +124,7 @@ namespace BipubServer
                                 mapName = tmpSpot.mapName,
                                 mapPath = tmpSpot.mapPath,
                                 mapPic_L = uuid,
-                                mapPic_S = Convert.ToBase64String(ImageToByte(newImage))
+                                mapPic_S = @$"data:{mimeType};base64,{Convert.ToBase64String(ImageToByte(newImage))}"
                             });
                         }
                         else {
