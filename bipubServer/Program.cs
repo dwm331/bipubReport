@@ -375,8 +375,8 @@ namespace BipubServer
                 endDate = DateTime.Today.ToString("yyyy-MM-dd");
             }
             else {
-                startDate = Data_Strat_Time;
-                endDate = Data_End_Time;
+                startDate = (Data_Strat_Time == "") ? DateTime.Today.ToString("yyyy-MM-dd") : Data_Strat_Time;
+                endDate = (Data_End_Time == "")? DateTime.Today.ToString("yyyy-MM-dd") : Data_End_Time;
             }
 
             try
@@ -468,8 +468,8 @@ namespace BipubServer
                             }
                         }
 
-                        //string reqString = System.Text.Json.JsonSerializer.Serialize(products);
-                        //Console.WriteLine("===products>>" + reqString);
+                        string reqString = System.Text.Json.JsonSerializer.Serialize(products);
+                        Console.WriteLine("===products>>" + reqString);
                         SaveLog($"[GetData] 讀取完畢");
                         if(products.Count > 0)
                             insertData(products);
