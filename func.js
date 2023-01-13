@@ -195,10 +195,13 @@ function reBuildChartData(chartData, search_country, yearSelectList) {
         var randomColor = CHART_COLORS[colorList[colorIdx]];
         var type = 'line';
         if(parseInt(y) == 2022) {
-            label = "(2022)"+search_country;
-            data = chartData.datasets.filter(sets => sets.label.includes('2022'))[0].data;
+            label = "(2023)"+search_country;
+            data = chartData.datasets.filter(sets => sets.label.includes('2023'))[0].data;
             randomColor = CHART_COLORS['red'];
             type = "bar";
+        } else if(parseInt(y) == 2022) {
+            label = "(2022)"+search_country;
+            data = chartData.datasets.filter(sets => sets.label.includes('2022'))[0].data;
         } else if(parseInt(y) == 2021) {
             label = "(2021)"+search_country;
             data = chartData.datasets.filter(sets => sets.label.includes('2021'))[0].data;
@@ -244,6 +247,7 @@ function getChartData(dateType, startDate, endDate, search_country, search_produ
         result20: [],
         result21: [],
         result22: [],
+        result23: [],
     }
 
     if(dateType == "week") {
@@ -259,6 +263,8 @@ function getChartData(dateType, startDate, endDate, search_country, search_produ
                     reports.result21.push(element);
                 } else if(tYear == 2022) {
                     reports.result22.push(element);
+                } else if(tYear == 2023) {
+                    reports.result23.push(element);
                 }
             }
         });
@@ -275,6 +281,8 @@ function getChartData(dateType, startDate, endDate, search_country, search_produ
                     reports.result21.push(element);
                 } else if(tYear == 2022) {
                     reports.result22.push(element);
+                } else if(tYear == 2023) {
+                    reports.result23.push(element);
                 }
             }
         });
@@ -282,6 +290,7 @@ function getChartData(dateType, startDate, endDate, search_country, search_produ
     
     //console.log(reports);
 
+    xxValues23 = [];
     xxValues22 = [];
     xxValues21 = [];
     xxValues20 = [];
@@ -290,9 +299,15 @@ function getChartData(dateType, startDate, endDate, search_country, search_produ
     if(dateType == "week") {
         x_axis.forEach(function(element){
             var week = element.split("-")[1];
-            var tmp = reports.result22.find(item => item.yyyyww == "2022-"+week.toString().padStart(2,"0"));
+            var tmp = reports.result23.find(item => item.yyyyww == "2023-"+week.toString().padStart(2,"0"));
             if(tmp != null) {
-                xxValues22.push(tmp.total);
+                xxValues23.push(tmp.total);
+            } else {
+                xxValues23.push(0);
+            }
+            var tmp5 = reports.result22.find(item => item.yyyyww == "2022-"+week.toString().padStart(2,"0"));
+            if(tmp5 != null) {
+                xxValues22.push(tmp5.total);
             } else {
                 xxValues22.push(0);
             }
@@ -317,9 +332,15 @@ function getChartData(dateType, startDate, endDate, search_country, search_produ
         });
     } else if(dateType == "day") {
         x_axis.forEach(function(element){
-            var tmp = reports.result22.find(item => item.Date == element);
+            var tmp = reports.result23.find(item => item.Date == element);
             if(tmp != null) {
-                xxValues22.push(tmp.Weights);
+                xxValues23.push(tmp.Weights);
+            } else {
+                xxValues23.push(0);
+            }
+            var tmp5 = reports.result22.find(item => moment(item.Date).format('MM-DD') == moment(element).format('MM-DD'));
+            if(tmp5 != null) {
+                xxValues22.push(tmp5.Weights);
             } else {
                 xxValues22.push(0);
             }
@@ -352,12 +373,15 @@ function getChartData(dateType, startDate, endDate, search_country, search_produ
         var data = [];
         var randomColor = CHART_COLORS[colorList[colorIdx]];
         var type = 'line';
-        if(parseInt(y) == 2022) {
-            label = "(2022)"+search_country;
-            data = xxValues22;
+        if(parseInt(y) == 2023) {
+            label = "(2023)"+search_country;
+            data = xxValues23;
             randomColor = CHART_COLORS['red'];
             type = 'bar';
-        } else if(parseInt(y) == 2021) {
+        } else if(parseInt(y) == 2022) {
+            label = "(2022)"+search_country;
+            data = xxValues22;
+        }  else if(parseInt(y) == 2021) {
             label = "(2021)"+search_country;
             data = xxValues21;
         } else if(parseInt(y) == 2020) {
