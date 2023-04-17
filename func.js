@@ -187,40 +187,22 @@ const CHART_COLORS = {
 
 function reBuildChartData(chartData, search_country, yearSelectList) {
     var datasets = [];
-    var colorIdx = 0;
-    var colorList = ['orange', 'green', 'blue', 'purple', 'grey', 'yellow'];
     yearSelectList.forEach(function(y){
-        var label = "";
-        var data = [];
-        var randomColor = CHART_COLORS[colorList[colorIdx]];
+        var randomColor = getRandomColor(['#000000', '#FFFFFF']); // 排除黑色和白色
         var type = 'line';
-        if(parseInt(y) == 2022) {
-            label = "(2023)"+search_country;
-            data = chartData.datasets.filter(sets => sets.label.includes('2023'))[0].data;
+        if(currentYear == parseInt(y)) {
             randomColor = CHART_COLORS['red'];
-            type = "bar";
-        } else if(parseInt(y) == 2022) {
-            label = "(2022)"+search_country;
-            data = chartData.datasets.filter(sets => sets.label.includes('2022'))[0].data;
-        } else if(parseInt(y) == 2021) {
-            label = "(2021)"+search_country;
-            data = chartData.datasets.filter(sets => sets.label.includes('2021'))[0].data;
-        } else if(parseInt(y) == 2020) {
-            label = "(2020)"+search_country;
-            data = chartData.datasets.filter(sets => sets.label.includes('2020'))[0].data;
-        } else if(parseInt(y) == 2019) {
-            label = "(2019)"+search_country;
-            data = chartData.datasets.filter(sets => sets.label.includes('2019'))[0].data;
+            type = 'bar';
         }
+
         datasets.push({
             type: type,
-            label: label,
-            data: data,
+            label: `(${y})${search_country}`,
+            data: chartData.datasets.filter(sets => sets.label.includes(y))[0].data,
             backgroundColor: randomColor,
             borderColor: randomColor,
             borderWidth: 1
         });
-        colorIdx++;
     });
 
     return  {
@@ -242,164 +224,81 @@ function getChartData(dateType, startDate, endDate, search_country, search_produ
     x_axis = getXaxis(dateType, startDate, endDate);
     //console.log(x_axis);
 
-    var reports = {
-        result19: [],
-        result20: [],
-        result21: [],
-        result22: [],
-        result23: [],
-    }
+    var reports = {}
+    const currentYear = new Date().getFullYear();
 
-    if(dateType == "week") {
-        DB_QuantumWeek.forEach(function(element){
-            var dt = element.yyyyww.split("-");
-            var tYear = dt[0];
-            if(element.country === search_country && element.itemcode == search_product) {
-                if(tYear == 2019) {
-                    reports.result19.push(element);
-                } else if(tYear == 2020) {
-                    reports.result20.push(element);
-                } else if(tYear == 2021) {
-                    reports.result21.push(element);
-                } else if(tYear == 2022) {
-                    reports.result22.push(element);
-                } else if(tYear == 2023) {
-                    reports.result23.push(element);
-                }
+    var data = dateType == "week" ? DB_QuantumWeek : DB_Quantums;
+    var searchAttr = dateType == "week" ? "yyyyww" : "Date";
+    var cityAttr = dateType == "week" ? "country" : "Country";
+    var itemAttr = dateType == "week" ? "itemcode" : "Itemcode";
+    data.forEach(function(element) {
+        var dt = element[searchAttr].split("-");
+        var tYear = dt[0];
+        if(element[cityAttr] === search_country && element[itemAttr] == search_product) {
+            var resultKey = "result" + tYear;
+            if (reports[resultKey]) {
+                reports[resultKey].push(element);
+            } else {
+                reports[resultKey] = [element];
             }
-        });
-    } else if(dateType == "day") {
-        DB_Quantums.forEach(function(element){
-            var dt = element.Date.split("-");
-            var tYear = dt[0];
-            if(element.Country === search_country && element.Itemcode == search_product) {
-                if(tYear == 2019) {
-                    reports.result19.push(element);
-                } else if(tYear == 2020) {
-                    reports.result20.push(element);
-                } else if(tYear == 2021) {
-                    reports.result21.push(element);
-                } else if(tYear == 2022) {
-                    reports.result22.push(element);
-                } else if(tYear == 2023) {
-                    reports.result23.push(element);
-                }
-            }
-        });
-    }
-    
+        }
+    });
+
     //console.log(reports);
 
-    xxValues23 = [];
-    xxValues22 = [];
-    xxValues21 = [];
-    xxValues20 = [];
-    xxValues19 = [];
-    
+    var xxValues = {};
     if(dateType == "week") {
         x_axis.forEach(function(element){
             var week = element.split("-")[1];
-            var tmp = reports.result23.find(item => item.yyyyww == "2023-"+week.toString().padStart(2,"0"));
-            if(tmp != null) {
-                xxValues23.push(tmp.total);
-            } else {
-                xxValues23.push(0);
-            }
-            var tmp5 = reports.result22.find(item => item.yyyyww == "2022-"+week.toString().padStart(2,"0"));
-            if(tmp5 != null) {
-                xxValues22.push(tmp5.total);
-            } else {
-                xxValues22.push(0);
-            }
-            var tmp2 = reports.result21.find(item => item.yyyyww == "2021-"+week.toString().padStart(2,"0"));
-            if(tmp2 != null) {
-                xxValues21.push(tmp2.total);
-            } else {
-                xxValues21.push(0);
-            }
-            var tmp3 = reports.result20.find(item => item.yyyyww == "2020-"+week.toString().padStart(2,"0"));
-            if(tmp3 != null) {
-                xxValues20.push(tmp3.total);
-            } else {
-                xxValues20.push(0);
-            }
-            var tmp4 = reports.result19.find(item => item.yyyyww == "2019-"+week.toString().padStart(2,"0"));
-            if(tmp4 != null) {
-                xxValues19.push(tmp4.total);
-            } else {
-                xxValues19.push(0);
+            for(var year in reports) {
+                var yearStr = year.substring(6, 10);
+                var resultKey = "result" + yearStr;
+                if(xxValues[yearStr] == null) {
+                    xxValues[yearStr] = [];
+                }
+                var tmp = reports[resultKey].find(item => item.yyyyww == yearStr + "-" + week.toString().padStart(2, "0"));
+                if(tmp != null) {
+                    xxValues[yearStr].push(tmp.total);
+                } else {
+                    xxValues[yearStr].push(0);
+                }
             }
         });
     } else if(dateType == "day") {
         x_axis.forEach(function(element){
-            var tmp = reports.result23.find(item => item.Date == element);
-            if(tmp != null) {
-                xxValues23.push(tmp.Weights);
-            } else {
-                xxValues23.push(0);
-            }
-            var tmp5 = reports.result22.find(item => moment(item.Date).format('MM-DD') == moment(element).format('MM-DD'));
-            if(tmp5 != null) {
-                xxValues22.push(tmp5.Weights);
-            } else {
-                xxValues22.push(0);
-            }
-            var tmp2 = reports.result21.find(item => moment(item.Date).format('MM-DD') == moment(element).format('MM-DD'));
-            if(tmp2 != null) {
-                xxValues21.push(tmp2.Weights);
-            } else {
-                xxValues21.push(0);
-            }
-            var tmp3 = reports.result20.find(item => moment(item.Date).format('MM-DD') == moment(element).format('MM-DD'));
-            if(tmp3 != null) {
-                xxValues20.push(tmp3.Weights);
-            } else {
-                xxValues20.push(0);
-            }
-            var tmp4 = reports.result19.find(item => moment(item.Date).format('MM-DD') == moment(element).format('MM-DD'));
-            if(tmp4 != null) {
-                xxValues19.push(tmp4.Weights);
-            } else {
-                xxValues19.push(0);
+            for(var year in reports) {
+                var yearStr = year.substring(6, 10);
+                var resultKey = "result" + yearStr;
+                if(xxValues[yearStr] == null) {
+                    xxValues[yearStr] = [];
+                }
+                var tmp = reports[resultKey].find(item => moment(item.Date).format('MM-DD') == moment(element).format('MM-DD'));
+                if(tmp != null) {
+                    xxValues[yearStr].push(tmp.Weights);
+                } else {
+                    xxValues[yearStr].push(0);
+                }
             }
         });
     }
 
     var datasets = [];
-    var colorIdx = 0;
-    var colorList = ['orange', 'green', 'blue', 'purple', 'grey', 'yellow'];
     yearSelectList.forEach(function(y){
-        var label = "";
-        var data = [];
-        var randomColor = CHART_COLORS[colorList[colorIdx]];
+        var randomColor = getRandomColor(['#000000', '#FFFFFF']); // 排除黑色和白色
         var type = 'line';
-        if(parseInt(y) == 2023) {
-            label = "(2023)"+search_country;
-            data = xxValues23;
+        if(currentYear == parseInt(y)) {
             randomColor = CHART_COLORS['red'];
             type = 'bar';
-        } else if(parseInt(y) == 2022) {
-            label = "(2022)"+search_country;
-            data = xxValues22;
-        }  else if(parseInt(y) == 2021) {
-            label = "(2021)"+search_country;
-            data = xxValues21;
-        } else if(parseInt(y) == 2020) {
-            label = "(2020)"+search_country;
-            data = xxValues20;
-        } else if(parseInt(y) == 2019) {
-            label = "(2019)"+search_country;
-            data = xxValues19;
         }
+
         datasets.push({
             type: type,
-            label: label,
-            data: data,
+            label: `(${y})${search_country}`,
+            data: xxValues[y],
             backgroundColor: randomColor,
             borderColor: randomColor,
             borderWidth: 1
         });
-        colorIdx++;
     });
 
     chartData.x_axis = x_axis;
@@ -413,3 +312,15 @@ function GerDateWeek(currentDate) {
     return Math.floor((currentDate - startDate) /
         (24 * 60 * 60 * 1000));
 }
+
+function getRandomColor(excludedColors) {
+    var letters = "0123456789ABCDEF";
+    var color;
+    do {
+      color = "#";
+      for (var i = 0; i < 6; i++) {
+        color += letters[Math.floor(Math.random() * 16)];
+      }
+    } while (excludedColors.indexOf(color) >= 0 || color === "#FF0000");
+    return color;
+  }
