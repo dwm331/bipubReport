@@ -186,6 +186,7 @@ const CHART_COLORS = {
 };
 
 function reBuildChartData(chartData, search_country, yearSelectList) {
+    const currentYear = new Date().getFullYear();
     var datasets = [];
     yearSelectList.forEach(function(y){
         var randomColor = getRandomColor(['#000000', '#FFFFFF']); // 排除黑色和白色
