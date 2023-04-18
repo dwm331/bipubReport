@@ -13,6 +13,7 @@
     <link rel="stylesheet" href="https://code.jquery.com/ui/1.13.2/themes/base/jquery-ui.css">
     <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
     <script src="https://code.jquery.com/ui/1.13.2/jquery-ui.min.js"></script>
+    <link rel="stylesheet" href="main.css">
 </head>
 <body>
 
@@ -80,6 +81,31 @@
             <button type="button" class="btn btn-primary w-100" id="RefreshChartsBtn">更新</button>
         </div>
     </div>
+    <hr>
+    <!--按鈕-->
+    <button type="button" class="btn btn-primary" id="openTableBtn">顯示數據表格</button>
+    <!-- Modal -->
+    <div class="modal fade" id="dataTableModal" tabindex="-1" role="dialog" aria-labelledby="dataTableModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered" role="document">
+            <div class="modal-content">
+                <div class="modal-header">
+                <h5 class="modal-title" id="dataTableModalLabel">資料行檢視</h5>
+                <button type="button" class="close" id="closeTopTableBtn">
+                    <span aria-hidden="true">&times;</span>
+                </button>
+                </div>
+                <div class="modal-body">
+                <div class="table-responsive">
+                    <table class="table" id="dataTable"></table>
+                </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" id="closeTableBtn">關閉</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <hr>
     <div class="row">
         <div class="alert alert-success" role="alert" id="alertWeek">
@@ -166,6 +192,9 @@
             chartdatas = getChartData(search_dateformat, startDate, endDate, search_country, search_product, yearSelectList);
 
             refleshChart(myChart, chartType, chartdatas);
+
+            var tableRows = getTableRows(search_dateformat, search_country, search_product, startDate, endDate);
+            renderTable(tableRows);
         });
 
         $("#countrySelect").change(function() {
@@ -174,6 +203,12 @@
             chartdatas = getChartData(search_dateformat, startDate, endDate, search_country, search_product, yearSelectList);
 
             refleshChart(myChart, chartType, chartdatas);
+
+            var tableRows = getTableRows(search_dateformat, search_country, search_product, startDate, endDate);
+            renderTable(tableRows);
+
+            var tableRows = getTableRows(search_dateformat, search_country, search_product, startDate, endDate);
+            renderTable(tableRows);
         });
 
         $("#productSelect").change(function() {
@@ -182,6 +217,9 @@
             chartdatas = getChartData(search_dateformat, startDate, endDate, search_country, search_product, yearSelectList);
 
             refleshChart(myChart, chartType, chartdatas);
+
+            var tableRows = getTableRows(search_dateformat, search_country, search_product, startDate, endDate);
+            renderTable(tableRows);
         });
 
         $("#DateFormatSelect").change(function() {
@@ -190,6 +228,9 @@
             chartdatas = getChartData(search_dateformat, startDate, endDate, search_country, search_product, yearSelectList);
             myChart = changeDateFormatType(ctx, myChart, search_dateformat, _config)
             refleshChart(myChart, chartType, chartdatas);
+
+            var tableRows = getTableRows(search_dateformat, search_country, search_product, startDate, endDate);
+            renderTable(tableRows);
         });
 
         $("#ChartTypeSelect").change(function() {
@@ -207,10 +248,15 @@
 
             var tmpChartdatas = reBuildChartData(chartdatas, search_country, yearSelectList);
             refleshChart(myChart, chartType, tmpChartdatas);
+
+            var tableRows = getTableRows(search_dateformat, search_country, search_product, startDate, endDate);
+            renderTable(tableRows);
         });
 
         // get report data
         chartdatas = getChartData(search_dateformat, startDate, endDate, search_country, search_product, yearSelectList);
+        var tableRows = getTableRows(search_dateformat, search_country, search_product, startDate, endDate);
+        renderTable(tableRows);
 
         const ctx = document.getElementById('myChart').getContext('2d');
         var _config = {
@@ -252,6 +298,54 @@
             if (win.height() >= 820) { /* ... */ }
             if (win.width() >= 1280) { /* ... */ }
         });
+
+        // 點擊按鈕後顯示 Modal
+        $('#openTableBtn').click(function() {
+            $('#dataTableModal').modal('show');
+        });
+
+        // 設定點擊背景時關閉 Modal
+        $('#dataTableModal').click(function(e) {
+            if (e.target === this) {
+                $(this).modal('hide');
+            }
+        });
+
+        // 綁定關閉按鈕點擊事件
+        $('#closeTableBtn').click(function() {
+            $('#dataTableModal').modal('hide');
+        });
+
+        // 綁定關閉按鈕點擊事件
+        $('#closeTopTableBtn').click(function() {
+            $('#dataTableModal').modal('hide');
+        });
+
+        // Function to render table
+        function renderTable(data){
+            var $table = $("#dataTable");
+            if(data.length == 0) {
+                $table.empty();
+                return;
+            }
+
+            var columns = Object.keys(data[0]);
+            $table.empty();
+            // Render header row
+            var $headerRow = $("<tr>");
+            columns.forEach(function(col){
+                $headerRow.append($("<th>").text(col));
+            });
+            $table.append($headerRow);
+            // Render data rows
+            data.forEach(function(row){
+                var $row = $("<tr>");
+                columns.forEach(function(col){
+                    $row.append($("<td>").text(row[col]));
+                });
+                $table.append($row);
+            });
+        }
     } );
 
 </script>

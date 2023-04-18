@@ -325,3 +325,36 @@ function getRandomColor(excludedColors) {
     } while (excludedColors.indexOf(color) >= 0 || color === "#FF0000");
     return color;
   }
+
+function getTableRows(dateType, search_country, search_product, startDate, endDate) {
+    var resultTableRows = [];
+    var data = dateType == "week" ? DB_QuantumWeek : DB_Quantums;
+    var searchAttr = dateType == "week" ? "yyyyww" : "Date";
+    var cityAttr = dateType == "week" ? "country" : "Country";
+    var itemAttr = dateType == "week" ? "itemcode" : "Itemcode";
+    data.forEach(function(element) {
+        var dt = element[searchAttr].split("-");
+        var tYear = dt[0];
+
+        if(element[cityAttr] === search_country && element[itemAttr] == search_product && parseInt(tYear) >= moment(startDate).format('YYYY') && parseInt(tYear) <= moment(endDate).format('YYYY')) {
+            var rowData = {'日期': element[searchAttr]};
+            var checkdata = false;
+            if (dateType == "week") {
+                var tWeek = dt[1];
+                if(parseInt(tWeek) >= moment(startDate).format('W') && parseInt(tWeek) <= moment(endDate).format('W')) {
+                    checkdata = true;
+                }
+            } else {
+                if(moment(element[searchAttr]).format('YYYY-MM-DD') >= moment(startDate).format('YYYY-MM-DD') && moment(element[searchAttr]).format('YYYY-MM-DD') <= moment(endDate).format('YYYY-MM-DD')) {
+                    checkdata = true;
+                }
+            }
+
+            if(checkdata) {
+                rowData[search_country] = dateType == "week" ? element.total : element.Weights;
+                resultTableRows.push(rowData);
+            }
+        }
+    });
+    return resultTableRows;
+}
