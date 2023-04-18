@@ -137,7 +137,9 @@
         });
         layoutSelectItems(labelDProducts, "productSelect");
 
-        var yearTag = [2019, 2020, 2021, 2022, 2023];
+        var startYear = 2019;
+        var currentYear = new Date().getFullYear();
+        var yearTag = Array.from({length: currentYear - startYear + 1}, (_, i) => startYear + i);
         layoutCheckItems(yearTag);
     
         //console.log(DB_Products);
